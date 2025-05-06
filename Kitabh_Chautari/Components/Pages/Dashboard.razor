@@ -1,0 +1,246 @@
+﻿@page "/dashboard"
+
+<div class="dashboardContainer">
+    <div class="top-stats">
+        <div class="stat-card">
+            <span>Total Members</span>
+            <strong>10</strong>
+        </div>
+        <div class="stat-card">
+            <span>Total Books</span>
+            <strong>16</strong>
+        </div>
+
+    </div>
+
+    <div class="graph-section">
+        <div class="section-header">
+            <h4>Sales Overview</h4>
+            <select class="filter-select">
+                <option>Last 7 Days</option>
+                <option>Last 30 Days</option>
+                <option>Last Year</option>
+            </select>
+        </div>
+        <div class="sales-bars">
+            <div class="book-bar best-seller">
+                <div class="bar-label">The Picture of Dorian Gray</div>
+                <div class="bar-container">
+                    <div class="bar-fill" style="width: 100%"></div>
+                    <span class="bar-value">120 sales</span>
+                </div>
+            </div>
+            <div class="book-bar best-seller">
+                <div class="bar-label">Emma</div>
+                <div class="bar-container">
+                    <div class="bar-fill" style="width: 79%"></div>
+                    <span class="bar-value">95 sales</span>
+                </div>
+            </div>
+            <div class="book-bar best-seller">
+                <div class="bar-label">Ivanhoe</div>
+                <div class="bar-container">
+                    <div class="bar-fill" style="width: 67%"></div>
+                    <span class="bar-value">80 sales</span>
+                </div>
+            </div>
+            <div class="book-bar best-seller">
+                <div class="bar-label">Death of a Salesman</div>
+                <div class="bar-container">
+                    <div class="bar-fill" style="width: 63%"></div>
+                    <span class="bar-value">75 sales</span>
+                </div>
+            </div>
+            <div class="book-bar worst-seller">
+                <div class="bar-label">Persuasion</div>
+                <div class="bar-container">
+                    <div class="bar-fill" style="width: 25%"></div>
+                    <span class="bar-value">30 sales</span>
+                </div>
+            </div>
+            <div class="book-bar worst-seller">
+                <div class="bar-label">Resurrection</div>
+                <div class="bar-container">
+                    <div class="bar-fill" style="width: 21%"></div>
+                    <span class="bar-value">25 sales</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="book-lists">
+        <div class="list-card">
+            <div class="section-header">
+                <h4>Best Selling Books</h4>
+            </div>
+            <ul>
+                <li>The Picture of Dorian Gray <span class="sales-count">120 sales</span></li>
+                <li>Emma <span class="sales-count">95 sales</span></li>
+                <li>Ivanhoe <span class="sales-count">80 sales</span></li>
+                <li>Death of a Salesman <span class="sales-count">75 sales</span></li>
+            </ul>
+        </div>
+        <div class="list-card">
+            <div class="section-header">
+                <h4>Worst Selling Books</h4>
+            </div>
+            <ul>
+                <li>Persuasion <span class="sales-count">30 sales</span></li>
+                <li>Resurrection <span class="sales-count">25 sales</span></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<style>
+    .dashboardContainer {
+        display: flex;
+        flex-direction: column;
+        max-width: 1200px;
+        margin: auto;
+        margin-top: 70px;
+        gap: 30px;
+        padding: 0 20px;
+    }
+
+    .top-stats {
+        display: flex;
+        gap: 30px;
+    }
+
+    .stat-card {
+        flex: 1;
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 20px;
+        text-align: center;
+        transition: transform 0.2s;
+    }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-card span {
+            font-size: 0.95rem;
+            color: #666;
+        }
+
+        .stat-card strong {
+            display: block;
+            font-size: 1.8rem;
+            margin-top: 10px;
+            color: #333;
+        }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+
+        .section-header h4 {
+            margin: 0;
+            font-size: 1.1rem;
+            color: #333;
+        }
+
+    .filter-select {
+        padding: 6px 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 0.9rem;
+    }
+
+    .graph-section {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 20px;
+    }
+
+    .sales-bars {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .book-bar {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .bar-label {
+        width: 200px;
+        font-size: 0.9rem;
+        color: #333;
+    }
+
+    .bar-container {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .bar-fill {
+        height: 25px;
+        border-radius: 4px;
+        transition: width 0.5s ease;
+    }
+
+    .best-seller .bar-fill {
+        background-color: rgba(54, 162, 235, 0.5);
+        border: 1px solid rgba(54, 162, 235, 1);
+    }
+
+    .worst-seller .bar-fill {
+        background-color: rgba(255, 99, 132, 0.5);
+        border: 1px solid rgba(255, 99, 132, 1);
+    }
+
+    .bar-value {
+        font-size: 0.85rem;
+        color: #666;
+    }
+
+    .book-lists {
+        display: flex;
+        gap: 30px;
+    }
+
+    .list-card {
+        flex: 1;
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 20px;
+    }
+
+        .list-card ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .list-card li {
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 0.95rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+            .list-card li:last-child {
+                border-bottom: none;
+            }
+
+    .sales-count {
+        color: #666;
+        font-size: 0.9rem;
+    }
+</style>
