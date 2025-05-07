@@ -1,0 +1,118 @@
+﻿@page "/addgenre"
+@using System.ComponentModel.DataAnnotations
+
+<div class="formContainer">
+    <h2 class="heading">Add Genre</h2>
+
+    @if (addSuccess)
+    {
+        <div class="alert alert-success">
+            Genre added successfully!
+        </div>
+    }
+
+    <EditForm Model="@genreModel" OnValidSubmit="HandleAddGenre">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="form-group">
+            <label for="name">Genre Name</label>
+            <InputText @bind-Value="genreModel.Name" id="name" class="form-control" />
+            <ValidationMessage For="@(() => genreModel.Name)" />
+        </div>
+
+        <div class="form-group">
+            <label for="description">Description (Optional)</label>
+            <InputTextArea @bind-Value="genreModel.Description" id="description" class="form-control" />
+            <ValidationMessage For="@(() => genreModel.Description)" />
+        </div>
+
+        <button type="submit" class="btn btn-primary">Add Genre</button>
+    </EditForm>
+</div>
+
+<style>
+    .formContainer {
+        max-width: 500px;
+        margin: 60px auto;
+        padding: 30px;
+        background-color: #f9f9f9;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        font-family: 'Segoe UI', sans-serif;
+    }
+
+    .heading {
+        text-align: center;
+        margin-bottom: 25px;
+        color: #333;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+        .form-group label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+    .form-control {
+        width: 100%;
+        padding: 10px;
+        font-size: 1rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+
+    .btn-primary {
+        width: 100%;
+        padding: 10px;
+        background-color: #007bff;
+        border: none;
+        color: white;
+        font-size: 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+
+    .alert {
+        margin-bottom: 20px;
+        padding: 10px;
+        border-radius: 4px;
+        background-color: #d4edda;
+        color: #155724;
+    }
+</style>
+
+@code {
+    private GenreModel genreModel = new GenreModel();
+    private bool addSuccess = false;
+
+    private void HandleAddGenre()
+    {
+        addSuccess = true;
+        genreModel = new GenreModel();
+
+        Task.Delay(5000).ContinueWith(_ =>
+        {
+            addSuccess = false;
+            InvokeAsync(StateHasChanged);
+        });
+    }
+
+    public class GenreModel
+    {
+        [Required(ErrorMessage = "Genre name is required")]
+        [StringLength(50, ErrorMessage = "Genre name cannot exceed 50 characters")]
+        public string Name { get; set; } = string.Empty;
+
+        [StringLength(200, ErrorMessage = "Description cannot exceed 200 characters")]
+        public string Description { get; set; } = string.Empty;
+    }
+}

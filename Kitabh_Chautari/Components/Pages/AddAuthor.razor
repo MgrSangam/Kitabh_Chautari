@@ -1,0 +1,148 @@
+﻿@page "/addauthor"
+@using System.ComponentModel.DataAnnotations
+
+<div class="formContainer">
+    <h2 class="heading">Add Author</h2>
+
+    @if (addSuccess)
+    {
+        <div class="alert alert-success">
+            Author added successfully!
+        </div>
+    }
+
+    <EditForm Model="@authorModel" OnValidSubmit="HandleAddAuthor">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="form-group">
+            <label for="firstName">First Name</label>
+            <InputText @bind-Value="authorModel.FirstName" id="firstName" class="form-control" />
+            <ValidationMessage For="@(() => authorModel.FirstName)" />
+        </div>
+
+        <div class="form-group">
+            <label for="lastName">Last Name</label>
+            <InputText @bind-Value="authorModel.LastName" id="lastName" class="form-control" />
+            <ValidationMessage For="@(() => authorModel.LastName)" />
+        </div>
+
+        <div class="form-group">
+            <label for="email">Email</label>
+            <InputText @bind-Value="authorModel.Email" id="email" class="form-control" />
+            <ValidationMessage For="@(() => authorModel.Email)" />
+        </div>
+
+        <div class="form-group">
+            <label for="phone">Phone Number</label>
+            <InputText @bind-Value="authorModel.PhoneNumber" id="phone" class="form-control" />
+            <ValidationMessage For="@(() => authorModel.PhoneNumber)" />
+        </div>
+
+        <div class="form-group">
+            <label for="bio">Biography (Optional)</label>
+            <InputTextArea @bind-Value="authorModel.Biography" id="bio" class="form-control" />
+            <ValidationMessage For="@(() => authorModel.Biography)" />
+        </div>
+
+        <button type="submit" class="btn btn-primary">Add Author</button>
+    </EditForm>
+</div>
+
+<style>
+    .formContainer {
+        max-width: 500px;
+        margin: 60px auto;
+        padding: 30px;
+        background-color: #f9f9f9;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        font-family: 'Segoe UI', sans-serif;
+    }
+
+    .heading {
+        text-align: center;
+        margin-bottom: 25px;
+        color: #333;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+        .form-group label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+    .form-control {
+        width: 100%;
+        padding: 10px;
+        font-size: 1rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+
+    .btn-primary {
+        width: 100%;
+        padding: 10px;
+        background-color: #007bff;
+        border: none;
+        color: white;
+        font-size: 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+
+    .alert {
+        margin-bottom: 20px;
+        padding: 10px;
+        border-radius: 4px;
+        background-color: #d4edda;
+        color: #155724;
+    }
+</style>
+
+@code {
+    private AuthorModel authorModel = new AuthorModel();
+    private bool addSuccess = false;
+
+    private void HandleAddAuthor()
+    {
+        addSuccess = true;
+        authorModel = new AuthorModel();
+
+        Task.Delay(5000).ContinueWith(_ =>
+        {
+            addSuccess = false;
+            InvokeAsync(StateHasChanged);
+        });
+    }
+
+    public class AuthorModel
+    {
+        [Required(ErrorMessage = "First name is required")]
+        [StringLength(50, ErrorMessage = "First name cannot exceed 50 characters")]
+        public string FirstName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Last name is required")]
+        [StringLength(50, ErrorMessage = "Last name cannot exceed 50 characters")]
+        public string LastName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Email is required")]
+        [EmailAddress(ErrorMessage = "Invalid email format")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Phone number is required")]
+        [RegularExpression(@"^[0-9]{7,15}$", ErrorMessage = "Invalid phone number")]
+        public string PhoneNumber { get; set; } = string.Empty;
+
+        [StringLength(500, ErrorMessage = "Biography cannot exceed 500 characters")]
+        public string Biography { get; set; } = string.Empty;
+    }
+}
