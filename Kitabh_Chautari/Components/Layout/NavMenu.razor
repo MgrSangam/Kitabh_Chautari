@@ -6,20 +6,9 @@
         <a class="navbar-brand" href="">Kitab Chautari</a>
     </NavLink>
     <nav class="nav-links">
-        <NavLink class="nav-link" href="category">
-            Category
-        </NavLink>
-        <NavLink class="nav-link" href="dashboard">
-            Dashboard
-        </NavLink>
-        <NavLink class="nav-link" href="addpublisher">
-            AddPublication
-        </NavLink>
         <div class="search-container">
-            <button class="search-button">
                 <span class="bi bi-search iconbi"></span>
             </button>
-            <input type="text" placeholder="Search..." class="search-input" />
         </div>
         <NavLink class="nav-link" href="wishlist">
             <i class="fas fa-heart"></i>
@@ -32,9 +21,157 @@
                 <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zm10 0c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2zM7.82 14.5l.94-2h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49a.996.996 0 0 0-.86-1.48H5.21l-.94-2H1v2h2l3.6 7.59-1.35 2.44c-.2.36-.25.77-.14 1.16.18.62.75 1.06 1.4 1.06H19v-2H7.82z" />
             </svg>
         </NavLink>
-        <NavLink class="nav-link" href="login">
             <span class="bi bi-person-fill logicon"></span>
         </NavLink>
 
     </nav>
 </div>
+
+<style>
+    .navbar-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background-color: #fbf9f9;
+        color: #334155;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.75rem 1rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Brand styling */
+    .navbar-brand {
+        font-size: 1.25rem;
+        font-weight: bold;
+        text-decoration: none;
+    }
+
+    /* Navigation links */
+    .nav-links {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    /* Individual link style */
+    .nav-link {
+        color: #334155;
+        text-decoration: none;
+        padding: 0.5rem;
+        border-radius: 4px;
+        transition: background-color 0.3s ease, color 0.3s ease;
+        position: relative;
+    }
+
+        .nav-link:hover,
+        .nav-link.active {
+            color: #485972;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+    /* Dropdown styles */
+    .dropdown {
+        position: relative;
+    }
+
+    .dropdown-toggle {
+        color: #334155;
+        text-decoration: none;
+        padding: 0.5rem;
+        border-radius: 4px;
+        transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    .dropdown-menu {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        background-color: #fbf9f9;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        border-radius: 4px;
+        min-width: 150px;
+        z-index: 1000;
+    }
+
+    .dropdown:hover .dropdown-menu {
+        display: block;
+    }
+
+    .dropdown-item {
+        display: block;
+        padding: 0.5rem 1rem;
+        color: #334155;
+        text-decoration: none;
+        transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+        .dropdown-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #485972;
+        }
+
+    /* Optional icons */
+    .bi {
+        margin-right: 0.5rem;
+    }
+
+    .logicon {
+        font-size: 1.8rem;
+    }
+
+    .search-container {
+        display: flex;
+        align-items: center;
+    }
+
+    .search-input {
+        padding: 0.4rem 2.75rem;
+        border-radius: 4px;
+        border: none;
+        outline: none;
+        font-size: 0.9rem;
+        width: 200px;
+    }
+
+    .search-button {
+        background-color: white;
+        border: none;
+        padding: 0.4rem 0rem;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1rem;
+    }
+
+        .search-button .bi {
+            font-size: 1rem;
+            color: black;
+        }
+
+    .infoName {
+        text-align: left;
+    }
+
+    .contact-title {
+        text-align: left;
+    }
+</style>
+
+@code {
+    [Inject]
+    private NavigationManager NavigationManager { get; set; }
+
+    private string searchQuery;
+
+    private void PerformSearch()
+    {
+        if (!string.IsNullOrWhiteSpace(searchQuery))
+        {
+            NavigationManager.NavigateTo($"/browse?search={Uri.EscapeDataString(searchQuery)}");
+        }
+    }
+}
