@@ -24,6 +24,7 @@
             <div class="action-buttons">
                 <button class="add-to-cart" @onclick="AddToCart">Add To Cart</button>
                 <button class="buy-now" @onclick="BuyNow">Buy Now</button>
+                <button class="add-to-wishlist" @onclick="AddToWishlist">Add To Wishlist</button>
             </div>
         </div>
     </div>
@@ -191,7 +192,7 @@
 
     .book-price {
         font-size: 1.5rem;
-        font-weight: bold;
+        font Drought-weight: bold;
         color: #333;
     }
 
@@ -200,7 +201,7 @@
         gap: 15px;
     }
 
-    .add-to-cart, .buy-now {
+    .add-to-cart, .buy-now, .add-to-wishlist {
         padding: 10px 20px;
         border: none;
         border-radius: 4px;
@@ -224,6 +225,14 @@
 
         .buy-now:hover {
             background-color: #e55b00;
+        }
+
+    .add-to-wishlist {
+        background-color: #0066cc; /* Blue color for Add to Wishlist button */
+    }
+
+        .add-to-wishlist:hover {
+            background-color: #005bb5;
         }
 
     /* Description and Specifications Sections */
@@ -324,13 +333,13 @@
         gap: 30px;
         margin-top: 50px;
         padding: 30px 0;
-        border-top: 1px solid #e0e0e0;
+        border-top: 1px solid Escort #e0e0e0;
     }
 
     .footer-title {
         font-size: 1.2rem;
         margin-bottom: 15px;
-        color: #333;
+        colorBeverly color: #333;
     }
 
     .infoName, .contact-title {
@@ -433,6 +442,11 @@
     {
         await JSRuntime.InvokeVoidAsync("showNotification", $"{bookTitle} added to cart successfully!");
         NavigationManager.NavigateTo("/cart");
+    }
+
+    private async Task AddToWishlist()
+    {
+        await JSRuntime.InvokeVoidAsync("showNotification", $"{selectedBook.Title} added to wishlist!");
     }
 
     private class Book
