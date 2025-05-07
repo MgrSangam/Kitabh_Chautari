@@ -1,6 +1,12 @@
-﻿@page "/dashboard"
+﻿@page "/admin/dashboard"
+@using Kitabh_Chautari.Components.Layout
+@layout AdminLayout
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
 
-<div class="dashboardContainer">
+<div class="dashboard-container">
+    <h1>Dashboard</h1>
+    
     <div class="top-stats">
         <div class="stat-card">
             <span>Total Members</span>
@@ -10,12 +16,11 @@
             <span>Total Books</span>
             <strong>16</strong>
         </div>
-
     </div>
 
     <div class="graph-section">
         <div class="section-header">
-            <h4>Sales Overview</h4>
+            <h2>Sales Overview</h2>
             <select class="filter-select">
                 <option>Last 7 Days</option>
                 <option>Last 30 Days</option>
@@ -70,42 +75,59 @@
 
     <div class="book-lists">
         <div class="list-card">
-            <div class="section-header">
-                <h4>Best Selling Books</h4>
-            </div>
-            <ul>
-                <li>The Picture of Dorian Gray <span class="sales-count">120 sales</span></li>
-                <li>Emma <span class="sales-count">95 sales</span></li>
-                <li>Ivanhoe <span class="sales-count">80 sales</span></li>
-                <li>Death of a Salesman <span class="sales-count">75 sales</span></li>
-            </ul>
+            <h2>Best Selling Books</h2>
+            <table class="books-table">
+                <tbody>
+                    <tr>
+                        <td>The Picture of Dorian Gray</td>
+                        <td>120 sales</td>
+                    </tr>
+                    <tr>
+                        <td>Emma</td>
+                        <td>95 sales</td>
+                    </tr>
+                    <tr>
+                        <td>Ivanhoe</td>
+                        <td>80 sales</td>
+                    </tr>
+                    <tr>
+                        <td>Death of a Salesman</td>
+                        <td>75 sales</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
         <div class="list-card">
-            <div class="section-header">
-                <h4>Worst Selling Books</h4>
-            </div>
-            <ul>
-                <li>Persuasion <span class="sales-count">30 sales</span></li>
-                <li>Resurrection <span class="sales-count">25 sales</span></li>
-            </ul>
+            <h2>Worst Selling Books</h2>
+            <table class="books-table">
+                <tbody>
+                    <tr>
+                        <td>Persuasion</td>
+                        <td>30 sales</td>
+                    </tr>
+                    <tr>
+                        <td>Resurrection</td>
+                        <td>25 sales</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
 
 <style>
-    .dashboardContainer {
-        display: flex;
-        flex-direction: column;
+    .dashboard-container {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         max-width: 1200px;
-        margin: auto;
-        margin-top: 70px;
-        gap: 30px;
-        padding: 0 20px;
+        margin: 0 auto;
+        padding: 20px;
+
     }
 
     .top-stats {
         display: flex;
-        gap: 30px;
+        gap: 20px;
+        margin-bottom: 30px;
     }
 
     .stat-card {
@@ -115,25 +137,20 @@
         border-radius: 8px;
         padding: 20px;
         text-align: center;
-        transition: transform 0.2s;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
 
-        .stat-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
+    .stat-card span {
+        font-size: 0.95rem;
+        color: #666;
+    }
 
-        .stat-card span {
-            font-size: 0.95rem;
-            color: #666;
-        }
-
-        .stat-card strong {
-            display: block;
-            font-size: 1.8rem;
-            margin-top: 10px;
-            color: #333;
-        }
+    .stat-card strong {
+        display: block;
+        font-size: 1.8rem;
+        margin-top: 10px;
+        color: #333;
+    }
 
     .section-header {
         display: flex;
@@ -141,12 +158,6 @@
         align-items: center;
         margin-bottom: 15px;
     }
-
-        .section-header h4 {
-            margin: 0;
-            font-size: 1.1rem;
-            color: #333;
-        }
 
     .filter-select {
         padding: 6px 10px;
@@ -160,6 +171,8 @@
         border: 1px solid #e0e0e0;
         border-radius: 8px;
         padding: 20px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
 
     .sales-bars {
@@ -210,7 +223,7 @@
 
     .book-lists {
         display: flex;
-        gap: 30px;
+        gap: 20px;
     }
 
     .list-card {
@@ -219,28 +232,21 @@
         border: 1px solid #e0e0e0;
         border-radius: 8px;
         padding: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
 
-        .list-card ul {
-            list-style-type: none;
-            padding: 0;
-            margin: 0;
-        }
+    .books-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
 
-        .list-card li {
-            padding: 8px 0;
-            border-bottom: 1px solid #f0f0f0;
-            font-size: 0.95rem;
-            display: flex;
-            justify-content: space-between;
-        }
+    .books-table th, .books-table td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+    }
 
-            .list-card li:last-child {
-                border-bottom: none;
-            }
-
-    .sales-count {
-        color: #666;
-        font-size: 0.9rem;
+    .books-table tr:last-child td {
+        border-bottom: none;
     }
 </style>

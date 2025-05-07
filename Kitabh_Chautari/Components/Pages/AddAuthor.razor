@@ -1,148 +1,193 @@
-﻿@page "/addauthor"
+﻿@page "/admin/addauthor"
 @using System.ComponentModel.DataAnnotations
+@using Kitabh_Chautari.Components.Layout
+@layout AdminLayout
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
 
-<div class="formContainer">
-    <h2 class="heading">Add Author</h2>
+<div class="mainContainer">
+    <h1>Add New Author</h1>
+    <div class="add-author-container">
+        <EditForm Model="@author" OnValidSubmit="@HandleValidSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
 
-    @if (addSuccess)
-    {
-        <div class="alert alert-success">
-            Author added successfully!
-        </div>
-    }
+            <div class="form-group">
+                <label for="name">Author Name:</label>
+                <InputText id="name" @bind-Value="author.Name" class="form-input" />
+                <ValidationMessage For="@(() => author.Name)" />
+            </div>
 
-    <EditForm Model="@authorModel" OnValidSubmit="HandleAddAuthor">
-        <DataAnnotationsValidator />
-        <ValidationSummary />
-
-        <div class="form-group">
-            <label for="firstName">First Name</label>
-            <InputText @bind-Value="authorModel.FirstName" id="firstName" class="form-control" />
-            <ValidationMessage For="@(() => authorModel.FirstName)" />
-        </div>
-
-        <div class="form-group">
-            <label for="lastName">Last Name</label>
-            <InputText @bind-Value="authorModel.LastName" id="lastName" class="form-control" />
-            <ValidationMessage For="@(() => authorModel.LastName)" />
-        </div>
-
-        <div class="form-group">
-            <label for="email">Email</label>
-            <InputText @bind-Value="authorModel.Email" id="email" class="form-control" />
-            <ValidationMessage For="@(() => authorModel.Email)" />
-        </div>
-
-        <div class="form-group">
-            <label for="phone">Phone Number</label>
-            <InputText @bind-Value="authorModel.PhoneNumber" id="phone" class="form-control" />
-            <ValidationMessage For="@(() => authorModel.PhoneNumber)" />
-        </div>
-
-        <div class="form-group">
-            <label for="bio">Biography (Optional)</label>
-            <InputTextArea @bind-Value="authorModel.Biography" id="bio" class="form-control" />
-            <ValidationMessage For="@(() => authorModel.Biography)" />
-        </div>
-
-        <button type="submit" class="btn btn-primary">Add Author</button>
-    </EditForm>
+            <div class="action-buttons">
+                <button type="submit" class="submit-btn">Add Author</button>
+                <button type="button" class="cancel-btn" @onclick="Cancel">Cancel</button>
+            </div>
+        </EditForm>
+    </div>
 </div>
 
+<!-- Notification -->
+<div class="notification" id="notification" style="display: none;"></div>
+
 <style>
-    .formContainer {
-        max-width: 500px;
-        margin: 60px auto;
-        padding: 30px;
-        background-color: #f9f9f9;
-        border-radius: 8px;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        font-family: 'Segoe UI', sans-serif;
+    .mainContainer {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        margin-top: 20px; /* Adjusted to avoid overlapping with navbar */
     }
 
-    .heading {
-        text-align: center;
-        margin-bottom: 25px;
+    h1 {
+        font-size: 2rem;
         color: #333;
+        margin-bottom: 30px;
+    }
+
+    .add-author-container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        background-color: #fff;
     }
 
     .form-group {
-        margin-bottom: 15px;
+        margin-bottom: 20px;
     }
 
         .form-group label {
             display: block;
-            font-weight: 500;
+            font-size: 1rem;
+            color: #555;
             margin-bottom: 5px;
         }
 
-    .form-control {
+    .form-input {
         width: 100%;
-        padding: 10px;
-        font-size: 1rem;
-        border: 1px solid #ccc;
+        padding: 8px;
+        border: 1px solid #ddd;
         border-radius: 4px;
+        font-size: 1rem;
     }
 
-    .btn-primary {
-        width: 100%;
-        padding: 10px;
-        background-color: #007bff;
-        border: none;
-        color: white;
-        font-size: 1rem;
-        border-radius: 4px;
-        cursor: pointer;
-    }
-
-        .btn-primary:hover {
-            background-color: #0056b3;
+        .form-input:focus {
+            outline: none;
+            border-color: #4CAF50;
+            box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
         }
 
-    .alert {
-        margin-bottom: 20px;
-        padding: 10px;
+    .action-buttons {
+        display: flex;
+        gap: 15px;
+        margin-top: 20px;
+    }
+
+    .submit-btn, .cancel-btn {
+        padding: 10px 20px;
+        border: none;
         border-radius: 4px;
-        background-color: #d4edda;
-        color: #155724;
+        cursor: pointer;
+        font-weight: 500;
+        font-size: 1rem;
+        color: white;
+    }
+
+    .submit-btn {
+        background-color: #4CAF50;
+    }
+
+        .submit-btn:hover {
+            background-color: #45a049;
+        }
+
+    .cancel-btn {
+        background-color: #666;
+    }
+
+        .cancel-btn:hover {
+            background-color: #555;
+        }
+
+    .notification {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background-color: #4CAF50;
+        color: white;
+        padding: 15px;
+        border-radius: 4px;
+        z-index: 1000;
+        display: none;
     }
 </style>
 
+<script>
+    function showNotification(message) {
+        const notification = document.getElementById('notification');
+        notification.textContent = message;
+        notification.style.display = 'block';
+        setTimeout(() => {
+            notification.style.display = 'none';
+        }, 3000);
+    }
+</script>
+
 @code {
-    private AuthorModel authorModel = new AuthorModel();
-    private bool addSuccess = false;
+    private Author author = new Author { BookAuthors = new List<BookAuthor>() };
 
-    private void HandleAddAuthor()
+    private async Task HandleValidSubmit()
     {
-        addSuccess = true;
-        authorModel = new AuthorModel();
+        // Generate a new ID (simple increment for demo purposes)
+        author.AuthorId = SharedAuthorData.Authors.Any() ? SharedAuthorData.Authors.Max(a => a.AuthorId) + 1 : 1;
 
-        Task.Delay(5000).ContinueWith(_ =>
-        {
-            addSuccess = false;
-            InvokeAsync(StateHasChanged);
-        });
+        // Add the new author to the shared list
+        SharedAuthorData.Authors.Add(author);
+
+        await JSRuntime.InvokeVoidAsync("showNotification", $"{author.Name} added successfully!");
+
+        // Reset the form
+        author = new Author { BookAuthors = new List<BookAuthor>() };
+
+        // Navigate back to the authors list
+        NavigationManager.NavigateTo("/admin/authors");
     }
 
-    public class AuthorModel
+    private void Cancel()
     {
-        [Required(ErrorMessage = "First name is required")]
-        [StringLength(50, ErrorMessage = "First name cannot exceed 50 characters")]
-        public string FirstName { get; set; } = string.Empty;
+        // Reset the form and navigate back
+        author = new Author { BookAuthors = new List<BookAuthor>() };
+        NavigationManager.NavigateTo("/admin/authors");
+    }
 
-        [Required(ErrorMessage = "Last name is required")]
-        [StringLength(50, ErrorMessage = "Last name cannot exceed 50 characters")]
-        public string LastName { get; set; } = string.Empty;
+    public class Author
+    {
+        public int AuthorId { get; set; }
 
-        [Required(ErrorMessage = "Email is required")]
-        [EmailAddress(ErrorMessage = "Invalid email format")]
-        public string Email { get; set; } = string.Empty;
+        [Required(ErrorMessage = "Author name is required")]
+        [StringLength(100, ErrorMessage = "Name cannot exceed 100 characters")]
+        public string Name { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Phone number is required")]
-        [RegularExpression(@"^[0-9]{7,15}$", ErrorMessage = "Invalid phone number")]
-        public string PhoneNumber { get; set; } = string.Empty;
+        public ICollection<BookAuthor> BookAuthors { get; set; }
+    }
 
-        [StringLength(500, ErrorMessage = "Biography cannot exceed 500 characters")]
-        public string Biography { get; set; } = string.Empty;
+    // Placeholder for BookAuthor class
+    public class BookAuthor
+    {
+        public int BookId { get; set; }
+        public int AuthorId { get; set; }
+    }
+
+    // Static class to share author data (for demo purposes)
+    public static class SharedAuthorData
+    {
+        public static List<Author> Authors { get; set; } = new List<Author>
+        {
+            new Author { AuthorId = 1, Name = "Oscar Wilde", BookAuthors = new List<BookAuthor>() },
+            new Author { AuthorId = 2, Name = "Jane Austen", BookAuthors = new List<BookAuthor>() },
+            new Author { AuthorId = 3, Name = "Walter Scott", BookAuthors = new List<BookAuthor>() },
+            new Author { AuthorId = 4, Name = "Arthur Miller", BookAuthors = new List<BookAuthor>() }
+        };
     }
 }

@@ -1,5 +1,8 @@
-﻿@page "/addpublisher"
-@using System.ComponentModel.DataAnnotations
+﻿@page "/admin/addpublisher"
+@using Kitabh_Chautari.Components.Layout
+@layout AdminLayout
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
 
 <div class="formContainer">
     <h2 class="heading">Add Publisher</h2>
@@ -120,20 +123,16 @@
 
     public class PublisherModel
     {
-        [Required(ErrorMessage = "Publisher name is required")]
-        [StringLength(100)]
+       
         public string Name { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Address is required")]
-        [StringLength(200)]
+
         public string Address { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Email is required")]
-        [EmailAddress(ErrorMessage = "Invalid email format")]
+
         public string Email { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Phone number is required")]
-        [RegularExpression(@"^[0-9]{7,15}$", ErrorMessage = "Invalid phone number")]
+
         public string PhoneNumber { get; set; } = string.Empty;
     }
 }
