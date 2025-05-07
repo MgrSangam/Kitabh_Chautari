@@ -50,6 +50,40 @@
                     </div>
                 }
             </div>
+
+            <h4>Order Completed</h4>
+            <div class="orderCompletedSection">
+                @foreach (var order in orders.Where(o => o.Status == "Delivered"))
+                {
+                    <div class="orderCard">
+                        <div class="orderImagePlaceholder"></div>
+                        <div class="orderDetails">
+                            <p><strong>Order ID:</strong> @order.Id</p>
+                            <p><strong>Book:</strong> @order.BookTitle</p>
+                            <p><strong>Order Date:</strong> @order.OrderDate.ToString("MMMM dd, yyyy")</p>
+                            <p><strong>Status:</strong> @order.Status</p>
+                            <p><strong>Price:</strong> NRs. @order.Price.ToString("N0") Qty: @order.Quantity</p>
+                            @if (purchasedBooks.Any(pb => pb.Id == order.Id && pb.Review == null))
+                            {
+                                <textarea placeholder="Write your review..." @bind="GetPurchasedBook(order.Id).NewReviewText"></textarea>
+                                <select @bind="GetPurchasedBook(order.Id).NewReviewRating">
+                                    <option value="0">Select Rating</option>
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                    <option value="4">4</option>
+                                    <option value="5">5</option>
+                                </select>
+                                <button class="submitReviewButton" @onclick="() => SubmitReview(order.Id)">Submit Review</button>
+                            }
+                            else
+                            {
+                                <button class="submitReviewButton" @onclick="() => ShowReviewSubmittedMessage()">Review Submitted</button>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
         </div>
     </div>
 
@@ -135,7 +169,7 @@
         border-radius: 8px;
     }
 
-    .orderSection {
+    .orderSection, .orderCompletedSection {
         display: flex;
         flex-direction: column;
         gap: 15px;
@@ -179,6 +213,37 @@
         .cancelOrderButton:hover {
             background-color: #cc0000;
         }
+
+    .submitReviewButton {
+        padding: 5px 10px;
+        background-color: #0066cc;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-top: 10px;
+    }
+
+        .submitReviewButton:hover {
+            background-color: #005bb5;
+        }
+
+    .orderDetails textarea {
+        width: 100%;
+        min-height: 60px;
+        padding: 5px;
+        margin-top: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        resize: vertical;
+    }
+
+    .orderDetails select {
+        padding: 5px;
+        margin-top: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
 
     .footer-grid {
         display: grid;
@@ -290,6 +355,11 @@
         };
     }
 
+    private PurchasedBook GetPurchasedBook(int orderId)
+    {
+        return purchasedBooks.FirstOrDefault(pb => pb.Id == orderId) ?? new PurchasedBook { Id = orderId };
+    }
+
     private async Task EditProfile()
     {
         await JSRuntime.InvokeVoidAsync("showNotification", "Edit Profile functionality coming soon!");
@@ -308,7 +378,7 @@
 
     private async Task SubmitReview(int bookId)
     {
-        var book = purchasedBooks.FirstOrDefault(b => b.Id == bookId);
+        var book = GetPurchasedBook(bookId);
         if (book != null && !string.IsNullOrWhiteSpace(book.NewReviewText) && book.NewReviewRating > 0)
         {
             book.Review = new Review
@@ -318,13 +388,18 @@
                 };
             book.NewReviewText = string.Empty;
             book.NewReviewRating = 0;
-            await JSRuntime.InvokeVoidAsync("showNotification", $"Review for {book.Title} submitted successfully!");
+            await JSRuntime.InvokeVoidAsync("showNotification", $"Review submitted successfully!");
             StateHasChanged();
         }
         else
         {
             await JSRuntime.InvokeVoidAsync("showNotification", "Please provide a valid review and rating.");
         }
+    }
+
+    private async Task ShowReviewSubmittedMessage()
+    {
+        await JSRuntime.InvokeVoidAsync("showNotification", "You've already submitted a review for this book.");
     }
 
     private class UserProfile
