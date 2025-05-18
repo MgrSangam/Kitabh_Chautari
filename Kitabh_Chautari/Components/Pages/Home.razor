@@ -1,6 +1,10 @@
 ﻿@page "/"
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
+@using KitabhChautari.IServices
+@using KitabhChautari.Services
+@using KitabhChautari.Models
+@inject IBookService BookService
 
 <!-- Main Content -->
 <div class="mainContainer">
@@ -17,14 +21,25 @@
         </div>
 
         <div class="products-grid">
-            @foreach (var book in topSellerBooks)
+            @if (topSellerBooks == null)
             {
-                <NavLink href="@($"/bookdetails/{book.Id}")" class="productCard">
-                    <img src="@book.ImageUrl" alt="@book.Title" />
-                    <h3 class="book-title">@book.Title</h3>
-                    <p class="book-author">@book.Author</p>
-                    <span class="book-price">NRP @book.Price.ToString("N0")</span>
-                </NavLink>
+                <p>Loading...</p>
+            }
+            else if (!topSellerBooks.Any())
+            {
+                <p>No top seller books available.</p>
+            }
+            else
+            {
+                @foreach (var book in topSellerBooks)
+                {
+                    <NavLink href="@($"/bookdetails/{book.BookId}")" class="productCard">
+                        <img src="@book.CoverImageUrl" alt="@book.Title" />
+                        <h3 class="book-title">@book.Title</h3>
+                        <p class="book-author">@book.AuthorName</p>
+                        <span class="book-price">NRP @book.Price.ToString("N0")</span>
+                    </NavLink>
+                }
             }
         </div>
     </div>
@@ -37,14 +52,25 @@
         </div>
 
         <div class="products-grid">
-            @foreach (var book in latestBooks)
+            @if (latestBooks == null)
             {
-                <NavLink href="@($"/bookdetails/{book.Id}")" class="productCard">
-                    <img src="@book.ImageUrl" alt="@book.Title" />
-                    <h3 class="book-title">@book.Title</h3>
-                    <p class="book-author">@book.Author</p>
-                    <span class="book-price">NRP @book.Price.ToString("N0")</span>
-                </NavLink>
+                <p>Loading...</p>
+            }
+            else if (!latestBooks.Any())
+            {
+                <p>No latest books available.</p>
+            }
+            else
+            {
+                @foreach (var book in latestBooks)
+                {
+                    <NavLink href="@($"/bookdetails/{book.BookId}")" class="productCard">
+                        <img src="@book.CoverImageUrl" alt="@book.Title" />
+                        <h3 class="book-title">@book.Title</h3>
+                        <p class="book-author">@book.AuthorName</p>
+                        <span class="book-price">NRP @book.Price.ToString("N0")</span>
+                    </NavLink>
+                }
             }
         </div>
     </div>
@@ -62,7 +88,6 @@
             <h3 class="footer-title">Contact Us</h3>
             <p class="contact-title">kitab@gmail.com</p>
         </div>
-
         <div class="footerCard">
             <h3 class="footer-title">Join Us On</h3>
             <span class="bi bi-facebook"></span>
@@ -119,17 +144,17 @@
         color: inherit;
     }
 
-        .productCard:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
+    .productCard:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
 
-        .productCard img {
-            width: 100%;
-            height: 300px;
-            object-fit: cover;
-            border-radius: 4px;
-        }
+    .productCard img {
+        width: 100%;
+        height: 300px;
+        object-fit: cover;
+        border-radius: 4px;
+    }
 
     .book-title {
         font-size: 1.1rem;
@@ -148,21 +173,6 @@
         display: block;
         margin-bottom: 15px;
     }
-
-    .add-to-cart {
-        width: 100%;
-        padding: 10px;
-        background-color: #4CAF50;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        font-weight: 500;
-    }
-
-        .add-to-cart:hover {
-            background-color: #45a049;
-        }
 
     .footer-grid {
         display: grid;
@@ -191,9 +201,9 @@
         cursor: pointer;
     }
 
-        .bi:hover {
-            color: #0066cc;
-        }
+    .bi:hover {
+        color: #0066cc;
+    }
 
     .notification {
         position: fixed;
@@ -220,33 +230,27 @@
 </script>
 
 @code {
-    private List<Book> topSellerBooks = new List<Book>
-    {
-        new Book { Id = 1, Title = "The Picture of Dorian Gray", Author = "Oscar Wilde", Price = 750, ImageUrl = "images/book1.jpg" },
-        new Book { Id = 2, Title = "Emma", Author = "Jane Austen", Price = 620, ImageUrl = "images/emma.jpg" },
-        new Book { Id = 3, Title = "Ivanhoe", Author = "Walter Scott", Price = 680, ImageUrl = "images/scott.jpg" },
-        new Book { Id = 4, Title = "Death of a Salesman", Author = "Arthur Miller", Price = 700, ImageUrl = "images/deathofsales.jpg" }
-    };
+    private IEnumerable<BookDto>? topSellerBooks;
+    private IEnumerable<BookDto>? latestBooks;
 
-    private List<Book> latestBooks = new List<Book>
+    protected override async Task OnInitializedAsync()
     {
-        new Book { Id = 5, Title = "A Little Life", Author = "Hanya Yanagihara", Price = 950, ImageUrl = "images/littlelife.jpg" },
-        new Book { Id = 6, Title = "Pride and Prejudice", Author = "Jane Austen", Price = 600, ImageUrl = "images/prideprejudice.jpg" },
-        new Book { Id = 7, Title = "Persuasion", Author = "Jane Austen", Price = 580, ImageUrl = "images/persuasion.jpg" },
-        new Book { Id = 8, Title = "Resurrection", Author = "Leo Tolstoy", Price = 820, ImageUrl = "images/resurrection.jpg" }
-    };
+        // Fetch all books from the service
+        var allBooks = await BookService.GetAllBooksAsync();
+
+        // Filter books for Top Seller section (Category.BestSeller)
+        topSellerBooks = allBooks
+            .Where(b => b.Category == KitabhChautari.Enum.Category.BestSeller)
+            .Take(4); // Limit to 4 books for display, adjust as needed
+
+        // Filter books for Latest Books section (Category.Latest)
+        latestBooks = allBooks
+            .Where(b => b.Category == KitabhChautari.Enum.Category.Latest)
+            .Take(4); // Limit to 4 books for display, adjust as needed
+    }
 
     private async Task AddToCart(string bookTitle)
     {
         await JSRuntime.InvokeVoidAsync("showNotification", $"{bookTitle} added to cart successfully!");
-    }
-
-    private class Book
-    {
-        public int Id { get; set; }
-        public string Title { get; set; }
-        public string Author { get; set; }
-        public decimal Price { get; set; }
-        public string ImageUrl { get; set; }
     }
 }

@@ -1,65 +1,82 @@
 ﻿@page "/bookdetails/{BookId:int}"
 @inject NavigationManager NavigationManager
+@using KitabhChautari.Models
+@using KitabhChautari.Services
+@using KitabhChautari.IServices
 @inject IJSRuntime JSRuntime
+@inject IBookService BookService
 
 <!-- Main Content -->
 <div class="mainContainer">
     <!-- Book Details Section -->
-    <div class="book-details-container">
-        <div class="book-image">
-            <img src="@selectedBook.ImageUrl" alt="@selectedBook.Title" />
+    @if (selectedBook == null)
+    {
+        <p>Loading book details...</p>
+    }
+    else if (selectedBookError)
+    {
+        <p>Error: Book not found or an error occurred.</p>
+    }
+    else
+    {
+        <div class="book-details-container">
+            <div class="book-image">
+                <img src="@selectedBook.CoverImageUrl" alt="@selectedBook.Title" />
+            </div>
+            <div class="book-info">
+                <h1 class="book-title">@selectedBook.Title</h1>
+                <p class="book-author">by @(selectedBook.AuthorName ?? "Unknown Author")</p>
+                <div class="quantity-selector">
+                    <label>Quantity:</label>
+                    <button class="quantity-btn" @onclick="DecreaseQuantity">-</button>
+                    <span>@quantity</span>
+                    <button class="quantity-btn" @onclick="IncreaseQuantity">+</button>
+                </div>
+                <div class="price-section">
+                    @if (selectedBook.IsOnSale && selectedBook.DiscountPercentage.HasValue)
+                    {
+                        var discountedPrice = selectedBook.Price * (1 - selectedBook.DiscountPercentage.Value);
+                        <span class="book-price">NRP @discountedPrice.ToString("N0")</span>
+                        <span class="original-price">NRP @selectedBook.Price.ToString("N0")</span>
+                    }
+                    else
+                    {
+                        <span class="book-price">NRP @selectedBook.Price.ToString("N0")</span>
+                    }
+                </div>
+                <div class="action-buttons">
+                    <button class="add-to-cart" @onclick="AddToCart">Add To Cart</button>
+                    <button class="buy-now" @onclick="BuyNow">Buy Now</button>
+                    <button class="add-to-wishlist" @onclick="AddToWishlist">Add To Wishlist</button>
+                </div>
+            </div>
         </div>
-        <div class="book-info">
-            <h1 class="book-title">@selectedBook.Title</h1>
-            <p class="book-author">by @selectedBook.Author</p>
-            <div class="quantity-selector">
-                <label>Quantity:</label>
-                <button class="quantity-btn" @onclick="DecreaseQuantity">-</button>
-                <span>@quantity</span>
-                <button class="quantity-btn" @onclick="IncreaseQuantity">+</button>
-            </div>
-            <div class="price-section">
-                <span class="book-price">NRP @selectedBook.Price.ToString("N0")</span>
-            </div>
-            <div class="action-buttons">
-                <button class="add-to-cart" @onclick="AddToCart">Add To Cart</button>
-                <button class="buy-now" @onclick="BuyNow">Buy Now</button>
-                <button class="add-to-wishlist" @onclick="AddToWishlist">Add To Wishlist</button>
-            </div>
-        </div>
-    </div>
 
-    <!-- Description and Specifications Section -->
-    <div class="desc-spec-container">
-        <div class="description-section">
-            <h2>Description</h2>
-            <p>
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
-                Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-                Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
-                Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-            </p>
+        <!-- Description and Specifications Section -->
+        <div class="desc-spec-container">
+            <div class="description-section">
+                <h2>Description</h2>
+                <p>@(selectedBook.Synopsis ?? "No description available.")</p>
+            </div>
+            <div class="specifications-section">
+                <h2>Specifications</h2>
+                <ul>
+                    <li>ISBN: @selectedBook.ISBN</li>
+                    <li>Pages: @selectedBook.Pages</li>
+                    <li>Published: @selectedBook.PublishedDate.ToString("MMMM dd, yyyy")</li>
+                    <li>Category: @(selectedBook.Category?.ToString() ?? "N/A")</li>
+                    <li>Stock: @(selectedBook.StockCount > 0 ? selectedBook.StockCount.ToString() : "Out of stock")</li>
+                </ul>
+            </div>
         </div>
-        <div class="specifications-section">
-            <h2>Specifications</h2>
-            <ul>
-                <li>Lorem ipsum dolor sit amet.</li>
-                <li>Consectetur adipiscing elit sed.</li>
-                <li>Eiusmod tempor incididunt ut labore.</li>
-                <li>Dolore magna aliqua ut enim.</li>
-                <li>Ad minim veniam quis nostrud.</li>
-            </ul>
-        </div>
-    </div>
 
-    <!-- Author Section -->
-    <div class="author-section">
-        <h2>Author</h2>
-        <p>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
-            Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-        </p>
-    </div>
+        <!-- Author Section -->
+        <div class="author-section">
+            <h2>Author</h2>
+            <p>@(selectedBook.AuthorName ?? "Unknown Author")</p>
+            <!-- Add more author details if available via a separate API call -->
+        </div>
+    }
 
     <!-- You Might Also Like Section -->
     <div class="secContainer">
@@ -69,15 +86,26 @@
         </div>
 
         <div class="products-grid">
-            @foreach (var book in relatedBooks)
+            @if (relatedBooks == null)
             {
-                <div class="productCard">
-                    <img src="@book.ImageUrl" alt="@book.Title" />
-                    <h3 class="book-title">@book.Title</h3>
-                    <p class="book-author">@book.Author</p>
-                    <span class="book-price">NRP @book.Price.ToString("N0")</span>
-                    <button class="add-to-cart" @onclick="() => AddToCartRelated(book.Title)">Add To Cart</button>
-                </div>
+                <p>Loading related books...</p>
+            }
+            else if (!relatedBooks.Any())
+            {
+                <p>No related books available.</p>
+            }
+            else
+            {
+                @foreach (var book in relatedBooks)
+                {
+                    <NavLink href="@($"/bookdetails/{book.BookId}")" class="productCard">
+                        <img src="@book.CoverImageUrl" alt="@book.Title" />
+                        <h3 class="book-title">@book.Title</h3>
+                        <p class="book-author">@(book.AuthorName ?? "Unknown Author")</p>
+                        <span class="book-price">NRP @book.Price.ToString("N0")</span>
+                        <button class="add-to-cart" @onclick="() => AddToCartRelated(book.Title)">Add To Cart</button>
+                    </NavLink>
+                }
             }
         </div>
     </div>
@@ -114,7 +142,7 @@
         max-width: 1200px;
         margin: 0 auto;
         padding: 20px;
-        margin-top: 60px; /* Increased gap between navbar and main content */
+        margin-top: 60px;
     }
 
     /* Book Details Section */
@@ -138,17 +166,17 @@
         gap: 15px;
     }
 
-        .book-info .book-title {
-            font-size: 2rem;
-            margin: 0;
-            color: #333;
-        }
+    .book-info .book-title {
+        font-size: 2rem;
+        margin: 0;
+        color: #333;
+    }
 
-        .book-info .book-author {
-            font-size: 1.2rem;
-            color: #666;
-            margin: 0;
-        }
+    .book-info .book-author {
+        font-size: 1.2rem;
+        color: #666;
+        margin: 0;
+    }
 
     .quantity-selector {
         display: flex;
@@ -156,10 +184,10 @@
         gap: 10px;
     }
 
-        .quantity-selector label {
-            font-size: 1rem;
-            color: #555;
-        }
+    .quantity-selector label {
+        font-size: 1rem;
+        color: #555;
+    }
 
     .quantity-btn {
         width: 30px;
@@ -174,9 +202,9 @@
         justify-content: center;
     }
 
-        .quantity-btn:hover {
-            background-color: #e0e0e0;
-        }
+    .quantity-btn:hover {
+        background-color: #e0e0e0;
+    }
 
     .quantity-selector span {
         min-width: 20px;
@@ -192,8 +220,14 @@
 
     .book-price {
         font-size: 1.5rem;
-        font Drought-weight: bold;
+        font-weight: bold;
         color: #333;
+    }
+
+    .original-price {
+        font-size: 1.2rem;
+        color: #666;
+        text-decoration: line-through;
     }
 
     .action-buttons {
@@ -215,25 +249,25 @@
         background-color: #4CAF50;
     }
 
-        .add-to-cart:hover {
-            background-color: #45a049;
-        }
+    .add-to-cart:hover {
+        background-color: #45a049;
+    }
 
     .buy-now {
-        background-color: #ff6200; /* Orange color for Buy Now button */
+        background-color: #ff6200;
     }
 
-        .buy-now:hover {
-            background-color: #e55b00;
-        }
+    .buy-now:hover {
+        background-color: #e55b00;
+    }
 
     .add-to-wishlist {
-        background-color: #0066cc; /* Blue color for Add to Wishlist button */
+        background-color: #0066cc;
     }
 
-        .add-to-wishlist:hover {
-            background-color: #005bb5;
-        }
+    .add-to-wishlist:hover {
+        background-color: #005bb5;
+    }
 
     /* Description and Specifications Sections */
     .desc-spec-container {
@@ -294,37 +328,39 @@
         border-radius: 8px;
         padding: 15px;
         transition: transform 0.3s ease;
+        text-decoration: none;
+        color: inherit;
     }
 
-        .productCard:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
+    .productCard:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
 
-        .productCard img {
-            width: 100%;
-            height: 300px;
-            object-fit: cover;
-            border-radius: 4px;
-        }
+    .productCard img {
+        width: 100%;
+        height: 300px;
+        object-fit: cover;
+        border-radius: 4px;
+    }
 
-        .productCard .book-title {
-            font-size: 1.1rem;
-            margin: 10px 0 5px 0;
-        }
+    .productCard .book-title {
+        font-size: 1.1rem;
+        margin: 10px 0 5px 0;
+    }
 
-        .productCard .book-author {
-            color: #666;
-            font-size: 0.9rem;
-            margin: 0 0 10px 0;
-        }
+    .productCard .book-author {
+        color: #666;
+        font-size: 0.9rem;
+        margin: 0 0 10px 0;
+    }
 
-        .productCard .book-price {
-            font-weight: bold;
-            color: #333;
-            display: block;
-            margin-bottom: 15px;
-        }
+    .productCard .book-price {
+        font-weight: bold;
+        color: #333;
+        display: block;
+        margin-bottom: 15px;
+    }
 
     /* Footer */
     .footer-grid {
@@ -333,13 +369,13 @@
         gap: 30px;
         margin-top: 50px;
         padding: 30px 0;
-        border-top: 1px solid Escort #e0e0e0;
+        border-top: 1px solid #e0e0e0;
     }
 
     .footer-title {
         font-size: 1.2rem;
         margin-bottom: 15px;
-        colorBeverly color: #333;
+        color: #333;
     }
 
     .infoName, .contact-title {
@@ -354,9 +390,9 @@
         cursor: pointer;
     }
 
-        .bi:hover {
-            color: #0066cc;
-        }
+    .bi:hover {
+        color: #0066cc;
+    }
 
     .notification {
         position: fixed;
@@ -386,36 +422,44 @@
     [Parameter]
     public int BookId { get; set; }
 
-    private Book selectedBook;
+    private BookDto? selectedBook;
+    private IEnumerable<BookDto>? relatedBooks;
+    private bool selectedBookError = false;
     private int quantity = 1;
-    private List<Book> relatedBooks = new List<Book>
-    {
-        new Book { Title = "The Picture of Dorian Gray", Author = "Oscar Wilde", Price = 750, ImageUrl = "images/book1.jpg" },
-        new Book { Title = "Emma", Author = "Jane Austen", Price = 620, ImageUrl = "images/emma.jpg" },
-        new Book { Title = "Ivanhoe", Author = "Walter Scott", Price = 680, ImageUrl = "images/scott.jpg" },
-        new Book { Title = "Death of a Salesman", Author = "Arthur Miller", Price = 700, ImageUrl = "images/deathofsales.jpg" }
-    };
 
-    private List<Book> allBooks = new List<Book>
+    protected override async Task OnInitializedAsync()
     {
-        new Book { Id = 1, Title = "The Picture of Dorian Gray", Author = "Oscar Wilde", Price = 750, ImageUrl = "images/book1.jpg" },
-        new Book { Id = 2, Title = "Emma", Author = "Jane Austen", Price = 620, ImageUrl = "images/emma.jpg" },
-        new Book { Id = 3, Title = "Ivanhoe", Author = "Walter Scott", Price = 680, ImageUrl = "images/scott.jpg" },
-        new Book { Id = 4, Title = "Death of a Salesman", Author = "Arthur Miller", Price = 700, ImageUrl = "images/deathofsales.jpg" },
-        new Book { Id = 5, Title = "A Little Life", Author = "Hanya Yanagihara", Price = 950, ImageUrl = "images/littlelife.jpg" },
-        new Book { Id = 6, Title = "Pride and Prejudice", Author = "Jane Austen", Price = 600, ImageUrl = "images/prideprejudice.jpg" },
-        new Book { Id = 7, Title = "Persuasion", Author = "Jane Austen", Price = 580, ImageUrl = "images/persuasion.jpg" },
-        new Book { Id = 8, Title = "Resurrection", Author = "Leo Tolstoy", Price = 820, ImageUrl = "images/resurrection.jpg" }
-    };
+        try
+        {
+            // Fetch the selected book
+            selectedBook = await BookService.GetBookByIdAsync(BookId);
+            if (selectedBook == null)
+            {
+                selectedBookError = true;
+                await JSRuntime.InvokeVoidAsync("showNotification", "Book not found!");
+                return;
+            }
 
-    protected override void OnInitialized()
-    {
-        selectedBook = allBooks.FirstOrDefault(b => b.Id == BookId) ?? allBooks[0];
+            // Fetch related books (e.g., same genre or category)
+            var allBooks = await BookService.GetAllBooksAsync();
+            relatedBooks = allBooks
+                .Where(b => b.BookId != BookId && // Exclude the current book
+                            (b.Genre_id == selectedBook.Genre_id || b.Category == selectedBook.Category))
+                .Take(4); // Limit to 4 related books
+        }
+        catch (Exception ex)
+        {
+            selectedBookError = true;
+            await JSRuntime.InvokeVoidAsync("showNotification", $"Error loading book details: {ex.Message}");
+        }
     }
 
     private void IncreaseQuantity()
     {
-        quantity++;
+        if (selectedBook != null && quantity < selectedBook.StockCount)
+        {
+            quantity++;
+        }
     }
 
     private void DecreaseQuantity()
@@ -428,33 +472,27 @@
 
     private async Task AddToCart()
     {
-        await JSRuntime.InvokeVoidAsync("showNotification", $"{selectedBook.Title} added to cart successfully!");
+        if (selectedBook == null) return;
+        await JSRuntime.InvokeVoidAsync("showNotification", $"{selectedBook.Title} (x{quantity}) added to cart successfully!");
         NavigationManager.NavigateTo("/cart");
     }
 
     private async Task BuyNow()
     {
-        await JSRuntime.InvokeVoidAsync("showNotification", $"Proceeding to order for {selectedBook.Title}!");
+        if (selectedBook == null) return;
+        await JSRuntime.InvokeVoidAsync("showNotification", $"Proceeding to order for {selectedBook.Title} (x{quantity})!");
         NavigationManager.NavigateTo("/order");
+    }
+
+    private async Task AddToWishlist()
+    {
+        if (selectedBook == null) return;
+        await JSRuntime.InvokeVoidAsync("showNotification", $"{selectedBook.Title} added to wishlist!");
     }
 
     private async Task AddToCartRelated(string bookTitle)
     {
         await JSRuntime.InvokeVoidAsync("showNotification", $"{bookTitle} added to cart successfully!");
         NavigationManager.NavigateTo("/cart");
-    }
-
-    private async Task AddToWishlist()
-    {
-        await JSRuntime.InvokeVoidAsync("showNotification", $"{selectedBook.Title} added to wishlist!");
-    }
-
-    private class Book
-    {
-        public int Id { get; set; }
-        public string Title { get; set; }
-        public string Author { get; set; }
-        public decimal Price { get; set; }
-        public string ImageUrl { get; set; }
     }
 }
