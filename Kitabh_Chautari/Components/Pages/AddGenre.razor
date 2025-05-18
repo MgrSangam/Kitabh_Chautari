@@ -1,21 +1,25 @@
 ﻿@page "/admin/addgenre"
+@using KitabhChautari.Models
+@using KitabhChautari.Services
+@using Kitabh_Chautari.IServices
 @using System.ComponentModel.DataAnnotations
 @using Kitabh_Chautari.Components.Layout
 @layout AdminLayout
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
+@inject IGenreService GenreService
 
-<div class="mainContainer">
+<div class="main-container">
     <h1>Add New Genre</h1>
     <div class="add-genre-container">
-        <EditForm Model="@genre" OnValidSubmit="@HandleValidSubmit">
+        <EditForm Model="@genre" FormName="AddGenreForm" OnValidSubmit="@HandleValidSubmit">
             <DataAnnotationsValidator />
             <ValidationSummary />
 
             <div class="form-group">
                 <label for="name">Genre Name:</label>
-                <InputText id="name" @bind-Value="genre.Name" class="form-input" />
-                <ValidationMessage For="@(() => genre.Name)" />
+                <InputText id="name" @bind-Value="genre.Genre_Name" class="form-input" />
+                <ValidationMessage For="@(() => genre.Genre_Name)" />
             </div>
 
             <div class="action-buttons">
@@ -24,52 +28,102 @@
             </div>
         </EditForm>
     </div>
+
+    <!-- Table of existing genres -->
+    <div class="genre-list">
+        <h2>Existing Genres</h2>
+        @if (existingGenres == null)
+        {
+            <p>Loading genres...</p>
+        }
+        else if (!existingGenres.Any())
+        {
+            <p>No genres found.</p>
+        }
+        else
+        {
+            <div class="table-wrapper">
+                <table class="genres-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Genre Name</th>
+                            <th scope="col">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var g in existingGenres)
+                        {
+                            <tr>
+                                <td>@g.Genre_Name</td>
+                                <td>
+                                    <button class="action-btn delete-btn"
+                                            aria-label="Delete @g.Genre_Name"
+                                            @onclick="() => DeleteGenre(g.Genre_id)">
+                                        Delete
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
 </div>
 
 <!-- Notification -->
-<div class="notification" id="notification" style="display: none;"></div>
+@if (!string.IsNullOrEmpty(notificationMessage))
+{
+    <div class="notification" style="display: block;">@notificationMessage</div>
+}
 
 <style>
-    .mainContainer {
+    .main-container {
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         max-width: 1200px;
         margin: 0 auto;
         padding: 20px;
-        margin-top: 20px; /* Adjusted to avoid overlapping with navbar */
+        margin-top: 20px;
     }
 
     h1 {
         font-size: 2rem;
         color: #333;
-        margin-bottom: 30px;
+        margin-bottom: 20px;
+    }
+
+    h2 {
+        font-size: 1.5rem;
+        color: #333;
+        margin-bottom: 15px;
     }
 
     .add-genre-container {
-        max-width: 600px;
-        margin: 0 auto;
-        padding: 20px;
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
         background-color: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        margin-bottom: 30px;
     }
 
     .form-group {
-        margin-bottom: 20px;
+        margin-bottom: 15px;
     }
 
         .form-group label {
             display: block;
-            font-size: 1rem;
-            color: #555;
+            font-weight: 500;
+            color: #333;
             margin-bottom: 5px;
         }
 
     .form-input {
         width: 100%;
-        padding: 8px;
-        border: 1px solid #ddd;
+        padding: 8px 12px;
+        border: 1px solid #ccc;
         border-radius: 4px;
-        font-size: 1rem;
+        font-size: 0.95rem;
+        color: #555;
     }
 
         .form-input:focus {
@@ -80,22 +134,18 @@
 
     .action-buttons {
         display: flex;
-        gap: 15px;
-        margin-top: 20px;
+        gap: 10px;
     }
 
-    .submit-btn, .cancel-btn {
+    .submit-btn {
         padding: 10px 20px;
+        background-color: #4CAF50;
+        color: white;
         border: none;
         border-radius: 4px;
         cursor: pointer;
         font-weight: 500;
-        font-size: 1rem;
-        color: white;
-    }
-
-    .submit-btn {
-        background-color: #4CAF50;
+        transition: background-color 0.2s;
     }
 
         .submit-btn:hover {
@@ -103,11 +153,81 @@
         }
 
     .cancel-btn {
-        background-color: #666;
+        padding: 10px 20px;
+        background-color: #f44336;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: background-color 0.2s;
     }
 
         .cancel-btn:hover {
-            background-color: #555;
+            background-color: #d32f2f;
+        }
+
+    .genre-list {
+        margin-top: 20px;
+    }
+
+    .table-wrapper {
+        overflow-x: auto;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .genres-table {
+        width: 100%;
+        border-collapse: collapse;
+        background-color: #fff;
+    }
+
+        .genres-table th,
+        .genres-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .genres-table th {
+            background-color: #f5f5f5;
+            font-weight: 600;
+            color: #333;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            letter-spacing: 0.5px;
+        }
+
+        .genres-table td {
+            color: #555;
+            font-size: 0.95rem;
+        }
+
+        .genres-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .genres-table tr:hover {
+            background-color: #f1f1f1;
+        }
+
+    .action-btn {
+        padding: 6px 12px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        color: white;
+        transition: background-color 0.2s;
+    }
+
+    .delete-btn {
+        background-color: #f44336;
+    }
+
+        .delete-btn:hover {
+            background-color: #d32f2f;
         }
 
     .notification {
@@ -119,75 +239,64 @@
         padding: 15px;
         border-radius: 4px;
         z-index: 1000;
-        display: none;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
     }
 </style>
 
-<script>
-    function showNotification(message) {
-        const notification = document.getElementById('notification');
-        notification.textContent = message;
-        notification.style.display = 'block';
-        setTimeout(() => {
-            notification.style.display = 'none';
-        }, 3000);
-    }
-</script>
-
 @code {
-    private Genre genre = new Genre { BookGenres = new List<BookGenre>() };
+    private GenreDto genre = new GenreDto();
+    private List<GenreDto> existingGenres = new List<GenreDto>();
+    private string notificationMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadGenres();
+    }
+
+    private async Task LoadGenres()
+    {
+        try
+        {
+            var genres = await GenreService.GetAllGenresAsync();
+            existingGenres = genres.ToList();
+        }
+        catch (Exception ex)
+        {
+            notificationMessage = "Failed to load genres: " + ex.Message;
+        }
+    }
 
     private async Task HandleValidSubmit()
     {
-        // Generate a new ID (simple increment for demo purposes)
-        genre.GenreId = SharedGenreData.Genres.Any() ? SharedGenreData.Genres.Max(g => g.GenreId) + 1 : 1;
+        try
+        {
+            await GenreService.AddGenreAsync(genre);
+            notificationMessage = $"{genre.Genre_Name} added successfully!";
+            genre = new GenreDto();
+            await LoadGenres();
+        }
+        catch (Exception ex)
+        {
+            notificationMessage = $"Failed to add genre: {ex.Message}";
+        }
+    }
 
-        // Add the new genre to the shared list
-        SharedGenreData.Genres.Add(genre);
-
-        await JSRuntime.InvokeVoidAsync("showNotification", $"{genre.Name} added successfully!");
-
-        // Reset the form
-        genre = new Genre { BookGenres = new List<BookGenre>() };
-
-        // Navigate back to the genres list
-        NavigationManager.NavigateTo("/admin/genres");
+    private async Task DeleteGenre(int genreId)
+    {
+        try
+        {
+            await GenreService.DeleteGenreAsync(genreId);
+            notificationMessage = "Genre deleted successfully!";
+            await LoadGenres();
+        }
+        catch (Exception ex)
+        {
+            notificationMessage = $"Failed to delete genre: {ex.Message}";
+        }
     }
 
     private void Cancel()
     {
-        // Reset the form and navigate back
-        genre = new Genre { BookGenres = new List<BookGenre>() };
         NavigationManager.NavigateTo("/admin/genres");
-    }
-
-    public class Genre
-    {
-        public int GenreId { get; set; }
-
-        [Required(ErrorMessage = "Genre name is required")]
-        [StringLength(50, ErrorMessage = "Genre name cannot exceed 50 characters")]
-        public string Name { get; set; } = string.Empty;
-
-        public ICollection<BookGenre> BookGenres { get; set; }
-    }
-
-    // Placeholder for BookGenre class
-    public class BookGenre
-    {
-        public int BookId { get; set; }
-        public int GenreId { get; set; }
-    }
-
-    // Static class to share genre data (for demo purposes)
-    public static class SharedGenreData
-    {
-        public static List<Genre> Genres { get; set; } = new List<Genre>
-        {
-            new Genre { GenreId = 1, Name = "Fantasy", BookGenres = new List<BookGenre>() },
-            new Genre { GenreId = 2, Name = "Sci-Fi", BookGenres = new List<BookGenre>() },
-            new Genre { GenreId = 3, Name = "Romance", BookGenres = new List<BookGenre>() },
-            new Genre { GenreId = 4, Name = "Drama", BookGenres = new List<BookGenre>() }
-        };
     }
 }

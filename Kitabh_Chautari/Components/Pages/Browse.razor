@@ -1,8 +1,15 @@
 ﻿@page "/browse"
+@using KitabhChautari.Models
+@using KitabhChautari.Enum
+@using KitabhChautari.IServices
+@using KitabhChautari.Services
+@using System.ComponentModel.DataAnnotations
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
+@inject IBookService BookService
+@inject HttpClient HttpClient
 
-<h3>Browse</h3>
+<h3>Browse Books</h3>
 
 <!-- Main Content -->
 <div class="mainContainer">
@@ -12,50 +19,50 @@
         <div class="filterSection">
             <h4>Filters</h4>
 
-            <!-- Genre Filter (Display Only) -->
+            <!-- Category Filter -->
+            <div class="filterGroup">
+                <label>Category</label>
+                <select @onchange="e => FilterByCategory(e.Value.ToString())">
+                    <option value="">All</option>
+                    @foreach (var category in Enum.GetValues(typeof(Category)))
+                    {
+                        <option value="@category">@category</option>
+                    }
+                </select>
+            </div>
+
+            <!-- Genre Filter -->
             <div class="filterGroup">
                 <label>Genre</label>
-                <select>
+                <select @onchange="e => FilterByGenre(e.Value.ToString())">
                     <option value="">All</option>
                     @foreach (var genre in genres)
                     {
-                        <option value="@genre">@genre</option>
+                        <option value="@genre.Genre_id">@genre.Genre_Name</option>
                     }
                 </select>
             </div>
 
-            <!-- Author Filter (Display Only) -->
+            <!-- Author Filter -->
             <div class="filterGroup">
                 <label>Author</label>
-                <select>
+                <select @onchange="e => FilterByAuthor(e.Value.ToString())">
                     <option value="">All</option>
                     @foreach (var author in authors)
                     {
-                        <option value="@author">@author</option>
+                        <option value="@author.Author_id">@author.Author_Name</option>
                     }
                 </select>
             </div>
 
-            <!-- Rating Filter (Display Only) -->
+            <!-- Rating Filter -->
             <div class="filterGroup">
                 <label>Rating</label>
-                <select>
+                <select @onchange="e => FilterByRating(e.Value.ToString())">
                     <option value="">All</option>
                     <option value="4">4+ Stars</option>
                     <option value="3">3+ Stars</option>
                     <option value="2">2+ Stars</option>
-                </select>
-            </div>
-
-            <!-- Publisher Filter (Display Only) -->
-            <div class="filterGroup">
-                <label>Publisher</label>
-                <select>
-                    <option value="">All</option>
-                    @foreach (var publisher in publishers)
-                    {
-                        <option value="@publisher">@publisher</option>
-                    }
                 </select>
             </div>
         </div>
@@ -67,51 +74,55 @@
                 <label>Sort by</label>
                 <select @onchange="e => SortBooks(e.Value.ToString())">
                     <option value="BestSellers">Best Sellers</option>
+                    <option value="Latest">Latest Books</option>
                     <option value="PriceLowToHigh">Price: Low to High</option>
                     <option value="PriceHighToLow">Price: High to Low</option>
                 </select>
             </div>
 
             <div class="products-grid">
-                @foreach (var book in filteredBooks)
+                @if (isLoading)
                 {
-                    <NavLink href="@($"/bookdetails/{book.Id}")" class="productCard">
-                        <img src="@book.ImageUrl" alt="@book.Title" />
-                        <h3 class="book-title">@book.Title</h3>
-                        <p class="book-author">@book.Author</p>
-                        <span class="book-price">NRP @book.Price.ToString("N0")</span>
-                    </NavLink>
+                    <div class="loading-message">Loading books...</div>
+                }
+                else if (!filteredBooks.Any())
+                {
+                    <div class="no-results">No books found matching your criteria</div>
+                }
+                else
+                {
+                    @foreach (var book in pagedBooks)
+                    {
+                        <NavLink href="@($"/bookdetails/{book.BookId}")" class="productCard">
+                            <img src="@book.CoverImageUrl" alt="@book.Title" />
+                            <h3 class="book-title">@book.Title</h3>
+                            <p class="book-author">@book.AuthorName</p>
+                            @if (book.IsOnSale && book.DiscountPercentage.HasValue)
+                            {
+                                <div class="price-container">
+                                    <span class="original-price">NRP @book.Price.ToString("N0")</span>
+                                    <span class="discounted-price">NRP @CalculateDiscountedPrice(book.Price, book.DiscountPercentage.Value).ToString("N0")</span>
+                                    <span class="discount-badge">@((book.DiscountPercentage.Value * 100).ToString("N0"))% OFF</span>
+                                </div>
+                            }
+                            else
+                            {
+                                <span class="book-price">NRP @book.Price.ToString("N0")</span>
+                            }
+                        </NavLink>
+                    }
                 }
             </div>
 
             <!-- Pagination -->
-            <div class="pagination">
-                <button @onclick="PreviousPage" disabled="@(currentPage == 1)">Previous</button>
-                <span>Page @currentPage of @totalPages</span>
-                <button @onclick="NextPage" disabled="@(currentPage == totalPages)">Next</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Footer -->
-    <div class="footer-grid">
-        <div class="footerCard">
-            <h3 class="footer-title">About Us</h3>
-            <p class="infoName">Debit Gurung</p>
-            <p class="infoName">Tuphan Gurung</p>
-            <p class="infoName">Sangam Thapa</p>
-            <p class="infoName">Sujal Gurung</p>
-        </div>
-        <div class="footerCard">
-            <h3 class="footer-title">Contact Us</h3>
-            <p class="contact-title">kitab@gmail.com</p>
-        </div>
-        <div class="footerCard">
-            <h3 class="footer-title">Join Us On</h3>
-            <span class="bi bi-facebook"></span>
-            <span class="bi bi-instagram"></span>
-            <span class="bi bi-tiktok"></span>
-            <span class="bi bi-twitter-x"></span>
+            @if (totalPages > 1)
+            {
+                <div class="pagination">
+                    <button @onclick="PreviousPage" disabled="@(currentPage == 1)">Previous</button>
+                    <span>Page @currentPage of @totalPages</span>
+                    <button @onclick="NextPage" disabled="@(currentPage == totalPages)">Next</button>
+                </div>
+            }
         </div>
     </div>
 </div>
@@ -200,11 +211,32 @@
         margin: 0 0 10px 0;
     }
 
-    .book-price {
+    .book-price, .discounted-price {
         font-weight: bold;
         color: #333;
         display: block;
         margin-bottom: 15px;
+    }
+
+    .price-container {
+        position: relative;
+    }
+
+    .original-price {
+        text-decoration: line-through;
+        color: #999;
+        font-size: 0.9rem;
+    }
+
+    .discount-badge {
+        position: absolute;
+        top: 0;
+        right: 0;
+        background-color: #ff5722;
+        color: white;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.8rem;
     }
 
     .pagination {
@@ -234,36 +266,13 @@
             color: #333;
         }
 
-    .footer-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 30px;
-        margin-top: 50px;
-        padding: 30px 0;
-        border-top: 1px solid #e0e0e0;
-    }
-
-    .footer-title {
+    .loading-message, .no-results {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 40px;
         font-size: 1.2rem;
-        margin-bottom: 15px;
-        color: #333;
-    }
-
-    .infoName, .contact-title {
-        margin: 5px 0;
         color: #666;
     }
-
-    .bi {
-        font-size: 1.5rem;
-        margin-right: 15px;
-        color: #555;
-        cursor: pointer;
-    }
-
-        .bi:hover {
-            color: #0066cc;
-        }
 
     .notification {
         position: fixed;
@@ -278,91 +287,146 @@
     }
 </style>
 
-<script>
-    function showNotification(message) {
-        const notification = document.getElementById('notification');
-        notification.textContent = message;
-        notification.style.display = 'block';
-        setTimeout(() => {
-            notification.style.display = 'none';
-        }, 3000);
-    }
-</script>
-
 @code {
-    private List<Book> allBooks = new List<Book>
-    {
-        new Book { Id = 1, Title = "The Picture of Dorian Gray", Author = "Oscar Wilde", Price = 750, ImageUrl = "images/book1.jpg", Genre = "Fiction", Rating = 4.5m, Publisher = "Penguin" },
-        new Book { Id = 2, Title = "Emma", Author = "Jane Austen", Price = 620, ImageUrl = "images/emma.jpg", Genre = "Romance", Rating = 4.0m, Publisher = "Oxford" },
-        new Book { Id = 3, Title = "Ivanhoe", Author = "Walter Scott", Price = 680, ImageUrl = "images/scott.jpg", Genre = "Historical", Rating = 3.8m, Publisher = "Penguin" },
-        new Book { Id = 4, Title = "Death of a Salesman", Author = "Arthur Miller", Price = 700, ImageUrl = "images/deathofsales.jpg", Genre = "Drama", Rating = 4.2m, Publisher = "Penguin" },
-        new Book { Id = 5, Title = "A Little Life", Author = "Hanya Yanagihara", Price = 950, ImageUrl = "images/littlelife.jpg", Genre = "Fiction", Rating = 4.7m, Publisher = "Anchor" },
-        new Book { Id = 6, Title = "Pride and Prejudice", Author = "Jane Austen", Price = 600, ImageUrl = "images/prideprejudice.jpg", Genre = "Romance", Rating = 4.5m, Publisher = "Oxford" },
-        new Book { Id = 7, Title = "Persuasion", Author = "Jane Austen", Price = 580, ImageUrl = "images/persuasion.jpg", Genre = "Romance", Rating = 4.1m, Publisher = "Oxford" },
-        new Book { Id = 8, Title = "Resurrection", Author = "Leo Tolstoy", Price = 820, ImageUrl = "images/resurrection.jpg", Genre = "Fiction", Rating = 4.0m, Publisher = "Penguin" }
-    };
-
-    private List<Book> filteredBooks = new List<Book>();
-    private List<string> genres;
-    private List<string> authors;
-    private List<string> publishers;
-    private Dictionary<string, string> activeFilters = new Dictionary<string, string>();
+    private List<BookDto> allBooks = new();
+    private List<BookDto> filteredBooks = new();
+    private List<BookDto> pagedBooks = new();
+    private List<GenreDto> genres = new();
+    private List<AuthorDto> authors = new();
+    private string currentCategoryFilter = string.Empty;
+    private string currentGenreFilter = string.Empty;
+    private string currentAuthorFilter = string.Empty;
+    private string currentRatingFilter = string.Empty;
+    private string currentSortOption = "BestSellers";
     private int currentPage = 1;
-    private int pageSize = 6;
+    private int pageSize = 8;
     private int totalPages => (int)Math.Ceiling((double)filteredBooks.Count / pageSize);
-    private string searchQuery;
+    private bool isLoading = true;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        genres = allBooks.Select(b => b.Genre).Distinct().ToList();
-        authors = allBooks.Select(b => b.Author).Distinct().ToList();
-        publishers = allBooks.Select(b => b.Publisher).Distinct().ToList();
-
-        // Parse the query string directly
-        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
-        var queryStrings = System.Web.HttpUtility.ParseQueryString(uri.Query);
-        searchQuery = queryStrings["search"];
-
-        ApplySearchAndPagination();
+        try
+        {
+            await LoadBooks();
+            await LoadGenres();
+            await LoadAuthors();
+            ApplyFilters();
+        }
+        catch (Exception ex)
+        {
+            await ShowNotification($"Error loading books: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
 
-    private void ApplySearchAndPagination()
+    private async Task LoadBooks()
     {
-        filteredBooks = allBooks.ToList();
+        allBooks = (await BookService.GetAllBooksAsync()).ToList();
+    }
 
-        if (!string.IsNullOrWhiteSpace(searchQuery))
+    private async Task LoadGenres()
+    {
+        var response = await HttpClient.GetFromJsonAsync<List<GenreDto>>("api/genres");
+        genres = response ?? new List<GenreDto>();
+    }
+
+    private async Task LoadAuthors()
+    {
+        var response = await HttpClient.GetFromJsonAsync<List<AuthorDto>>("api/authors");
+        authors = response ?? new List<AuthorDto>();
+    }
+
+    private void FilterByCategory(string category)
+    {
+        currentCategoryFilter = category;
+        currentPage = 1;
+        ApplyFilters();
+    }
+
+    private void FilterByGenre(string genreId)
+    {
+        currentGenreFilter = genreId;
+        currentPage = 1;
+        ApplyFilters();
+    }
+
+    private void FilterByAuthor(string authorId)
+    {
+        currentAuthorFilter = authorId;
+        currentPage = 1;
+        ApplyFilters();
+    }
+
+    private void FilterByRating(string rating)
+    {
+        currentRatingFilter = rating;
+        currentPage = 1;
+        ApplyFilters();
+    }
+
+    private void ApplyFilters()
+    {
+        filteredBooks = allBooks;
+
+        if (!string.IsNullOrEmpty(currentCategoryFilter))
         {
-            filteredBooks = filteredBooks.Where(b => b.Title.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
-                                                    b.Author.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
-                                                    b.Genre.Contains(searchQuery, StringComparison.OrdinalIgnoreCase)).ToList();
+            filteredBooks = filteredBooks.Where(b => b.Category?.ToString() == currentCategoryFilter).ToList();
         }
 
-        SortBooks("BestSellers"); // Default sort
-        ApplyPagination();
+        if (!string.IsNullOrEmpty(currentGenreFilter) && int.TryParse(currentGenreFilter, out int genreId))
+        {
+            filteredBooks = filteredBooks.Where(b => b.Genre_id == genreId).ToList();
+        }
+
+        if (!string.IsNullOrEmpty(currentAuthorFilter) && int.TryParse(currentAuthorFilter, out int authorId))
+        {
+            filteredBooks = filteredBooks.Where(b => b.Author_id == authorId).ToList();
+        }
+
+        if (!string.IsNullOrEmpty(currentRatingFilter) && decimal.TryParse(currentRatingFilter, out decimal minRating))
+        {
+            // Note: You'll need to add Rating property to BookDto if you want to filter by rating
+            // filteredBooks = filteredBooks.Where(b => b.Rating >= minRating).ToList();
+        }
+
+        SortBooks(currentSortOption);
     }
 
     private void SortBooks(string sortOption)
     {
-        if (sortOption == "PriceLowToHigh")
+        currentSortOption = sortOption;
+
+        switch (sortOption)
         {
-            filteredBooks = filteredBooks.OrderBy(b => b.Price).ToList();
-        }
-        else if (sortOption == "PriceHighToLow")
-        {
-            filteredBooks = filteredBooks.OrderByDescending(b => b.Price).ToList();
-        }
-        else
-        {
-            filteredBooks = filteredBooks.OrderByDescending(b => b.Rating).ToList();
+            case "Latest":
+                filteredBooks = filteredBooks.OrderByDescending(b => b.PublishedDate).ToList();
+                break;
+            case "PriceLowToHigh":
+                filteredBooks = filteredBooks.OrderBy(b => b.Price).ToList();
+                break;
+            case "PriceHighToLow":
+                filteredBooks = filteredBooks.OrderByDescending(b => b.Price).ToList();
+                break;
+            case "BestSellers":
+            default:
+                // Note: You'll need to add a SalesCount property to BookDto for best sellers
+                // filteredBooks = filteredBooks.OrderByDescending(b => b.SalesCount).ToList();
+                filteredBooks = filteredBooks.OrderByDescending(b => b.PublishedDate).ToList();
+                break;
         }
 
         ApplyPagination();
-        StateHasChanged();
     }
 
     private void ApplyPagination()
     {
-        filteredBooks = filteredBooks.Skip((currentPage - 1) * pageSize).Take(pageSize).ToList();
+        pagedBooks = filteredBooks
+            .Skip((currentPage - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
     }
 
     private void PreviousPage()
@@ -370,8 +434,7 @@
         if (currentPage > 1)
         {
             currentPage--;
-            ApplySearchAndPagination();
-            StateHasChanged();
+            ApplyPagination();
         }
     }
 
@@ -380,25 +443,17 @@
         if (currentPage < totalPages)
         {
             currentPage++;
-            ApplySearchAndPagination();
-            StateHasChanged();
+            ApplyPagination();
         }
     }
 
-    private async Task AddToCart(string bookTitle)
+    private decimal CalculateDiscountedPrice(decimal price, decimal discountPercentage)
     {
-        await JSRuntime.InvokeVoidAsync("showNotification", $"{bookTitle} added to cart successfully!");
+        return price * (1 - discountPercentage);
     }
 
-    private class Book
+    private async Task ShowNotification(string message)
     {
-        public int Id { get; set; }
-        public string Title { get; set; }
-        public string Author { get; set; }
-        public decimal Price { get; set; }
-        public string ImageUrl { get; set; }
-        public string Genre { get; set; }
-        public decimal Rating { get; set; }
-        public string Publisher { get; set; }
+        await JSRuntime.InvokeVoidAsync("showNotification", message);
     }
 }

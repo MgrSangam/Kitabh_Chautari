@@ -1,23 +1,32 @@
 ﻿@page "/admin/addbook"
+@using KitabhChautari.Models
+@using KitabhChautari.IServices
+@using KitabhChautari.Enum
 @using Kitabh_Chautari.Components.Layout
+@using System.ComponentModel.DataAnnotations
 @layout AdminLayout
 @inject NavigationManager NavigationManager
-@inject IJSRuntime JSRuntime
+@inject IBookService BookService
+@inject HttpClient HttpClient
+@using System.Text.Json
+@using System.Text.Json.Serialization
 
-<div class="mainContainer">
+<div class="main-container">
     <h1>Add New Book</h1>
     <div class="add-book-container">
-        <EditForm Model="@newBook" OnValidSubmit="@HandleValidSubmit">
+        <EditForm Model="@newBook" FormName="AddBookForm" OnValidSubmit="@HandleValidSubmit">
             <DataAnnotationsValidator />
+            <ValidationSummary />
+
             <div class="form-group">
                 <label for="title">Title:</label>
                 <InputText id="title" @bind-Value="newBook.Title" class="form-input" />
                 <ValidationMessage For="@(() => newBook.Title)" />
             </div>
             <div class="form-group">
-                <label for="author">Author:</label>
-                <InputText id="author" @bind-Value="newBook.Author" class="form-input" />
-                <ValidationMessage For="@(() => newBook.Author)" />
+                <label for="isbn">ISBN:</label>
+                <InputText id="isbn" @bind-Value="newBook.ISBN" class="form-input" />
+                <ValidationMessage For="@(() => newBook.ISBN)" />
             </div>
             <div class="form-group">
                 <label for="price">Price (NRP):</label>
@@ -25,19 +34,92 @@
                 <ValidationMessage For="@(() => newBook.Price)" />
             </div>
             <div class="form-group">
-                <label for="imageUrl">Image URL:</label>
-                <InputText id="imageUrl" @bind-Value="newBook.ImageUrl" class="form-input" />
-                <ValidationMessage For="@(() => newBook.ImageUrl)" />
+                <label for="publishedDate">Published Date:</label>
+                <InputDate id="publishedDate" @bind-Value="newBook.PublishedDate" class="form-input" />
+                <ValidationMessage For="@(() => newBook.PublishedDate)" />
+            </div>
+            <div class="form-group">
+                <label for="pages">Pages:</label>
+                <InputNumber id="pages" @bind-Value="newBook.Pages" class="form-input" />
+                <ValidationMessage For="@(() => newBook.Pages)" />
             </div>
             <div class="form-group">
                 <label for="stock">Stock:</label>
-                <InputNumber id="stock" @bind-Value="newBook.Stock" class="form-input" />
-                <ValidationMessage For="@(() => newBook.Stock)" />
+                <InputNumber id="stock" @bind-Value="newBook.StockCount" class="form-input" />
+                <ValidationMessage For="@(() => newBook.StockCount)" />
+            </div>
+            <div class="form-group">
+                <label for="synopsis">Synopsis:</label>
+                <InputTextArea id="synopsis" @bind-Value="newBook.Synopsis" class="form-input" />
+                <ValidationMessage For="@(() => newBook.Synopsis)" />
+            </div>
+            <div class="form-group">
+                <label for="imageUrl">Image URL:</label>
+                <InputText id="imageUrl" @bind-Value="newBook.CoverImageUrl" class="form-input" />
+                <ValidationMessage For="@(() => newBook.CoverImageUrl)" />
+            </div>
+            <div class="form-group">
+                <label for="isOnSale">Is On Sale:</label>
+                <InputCheckbox id="isOnSale" @bind-Value="newBook.IsOnSale" class="form-checkbox" />
+                <ValidationMessage For="@(() => newBook.IsOnSale)" />
             </div>
             <div class="form-group">
                 <label for="discount">Discount (%):</label>
-                <InputNumber id="discount" @bind-Value="newBook.Discount" class="form-input" />
-                <ValidationMessage For="@(() => newBook.Discount)" />
+                <InputNumber id="discount" @bind-Value="discountPercentage" class="form-input" />
+                <ValidationMessage For="@(() => discountPercentage)" />
+            </div>
+            <div class="form-group">
+                <label for="category">Category:</label>
+                <InputSelect id="category" @bind-Value="newBook.Category" class="form-input">
+                    <option value="">Select Category</option>
+                    @foreach (var category in Enum.GetValues(typeof(Category)))
+                    {
+                        <option value="@category">@category</option>
+                    }
+                </InputSelect>
+                <ValidationMessage For="@(() => newBook.Category)" />
+            </div>
+            <div class="form-group">
+                <label for="authorId">Author:</label>
+                <InputSelect id="authorId" @bind-Value="newBook.Author_id" class="form-input">
+                    <option value="0">Select Author</option>
+                    @if (authors != null)
+                    {
+                        @foreach (var author in authors)
+                        {
+                            <option value="@author.Id">@author.Name</option>
+                        }
+                    }
+                </InputSelect>
+                <ValidationMessage For="@(() => newBook.Author_id)" />
+            </div>
+            <div class="form-group">
+                <label for="genreId">Genre:</label>
+                <InputSelect id="genreId" @bind-Value="newBook.Genre_id" class="form-input">
+                    <option value="0">Select Genre</option>
+                    @if (genres != null)
+                    {
+                        @foreach (var genre in genres)
+                        {
+                            <option value="@genre.Id">@genre.Name</option>
+                        }
+                    }
+                </InputSelect>
+                <ValidationMessage For="@(() => newBook.Genre_id)" />
+            </div>
+            <div class="form-group">
+                <label for="publisherId">Publisher:</label>
+                <InputSelect id="publisherId" @bind-Value="newBook.Publisher_id" class="form-input">
+                    <option value="0">Select Publisher</option>
+                    @if (publishers != null)
+                    {
+                        @foreach (var publisher in publishers)
+                        {
+                            <option value="@publisher.Id">@publisher.Name</option>
+                        }
+                    }
+                </InputSelect>
+                <ValidationMessage For="@(() => newBook.Publisher_id)" />
             </div>
             <div class="action-buttons">
                 <button type="submit" class="submit-btn">Add Book</button>
@@ -48,88 +130,102 @@
 </div>
 
 <!-- Notification -->
-<div class="notification" id="notification" style="display: none;"></div>
+@if (!string.IsNullOrEmpty(notificationMessage))
+{
+    <div class="notification" style="display: block;">@notificationMessage</div>
+}
 
 <style>
-    .mainContainer {
+    .main-container {
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         max-width: 1200px;
         margin: 0 auto;
         padding: 20px;
-        margin-top: 20px; /* Adjusted to avoid overlapping with navbar */
+        margin-top: 20px;
     }
 
     h1 {
         font-size: 2rem;
         color: #333;
-        margin-bottom: 30px;
-    }
-
-    .add-book-container {
-        max-width: 600px;
-        margin: 0 auto;
-        padding: 20px;
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        background-color: #fff;
-    }
-
-    .form-group {
         margin-bottom: 20px;
     }
 
-    .form-group label {
-        display: block;
-        font-size: 1rem;
-        color: #555;
-        margin-bottom: 5px;
+    .add-book-container {
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        margin-bottom: 30px;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
     }
 
-    .form-input {
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+        .form-group label {
+            display: block;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+    .form-input, .form-checkbox {
         width: 100%;
-        padding: 8px;
-        border: 1px solid #ddd;
+        padding: 8px 12px;
+        border: 1px solid #ccc;
         border-radius: 4px;
-        font-size: 1rem;
+        font-size: 0.95rem;
+        color: #555;
     }
 
-    .form-input:focus {
-        outline: none;
-        border-color: #4CAF50;
-        box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
+        .form-input:focus, .form-checkbox:focus {
+            outline: none;
+            border-color: #4CAF50;
+            box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
+        }
+
+    textarea.form-input {
+        resize: vertical;
+        min-height: 100px;
     }
 
     .action-buttons {
         display: flex;
-        gap: 15px;
-        margin-top: 20px;
+        gap: 10px;
     }
 
-    .submit-btn, .cancel-btn {
+    .submit-btn {
         padding: 10px 20px;
+        background-color: #4CAF50;
+        color: white;
         border: none;
         border-radius: 4px;
         cursor: pointer;
         font-weight: 500;
-        font-size: 1rem;
-        color: white;
+        transition: background-color 0.2s;
     }
 
-    .submit-btn {
-        background-color: #4CAF50;
-    }
-
-    .submit-btn:hover {
-        background-color: #45a049;
-    }
+        .submit-btn:hover {
+            background-color: #45a049;
+        }
 
     .cancel-btn {
-        background-color: #666;
+        padding: 10px 20px;
+        background-color: #f44336;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: background-color 0.2s;
     }
 
-    .cancel-btn:hover {
-        background-color: #555;
-    }
+        .cancel-btn:hover {
+            background-color: #d32f2f;
+        }
 
     .notification {
         position: fixed;
@@ -140,70 +236,84 @@
         padding: 15px;
         border-radius: 4px;
         z-index: 1000;
-        display: none;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
     }
 </style>
 
-<script>
-    function showNotification(message) {
-        const notification = document.getElementById('notification');
-        notification.textContent = message;
-        notification.style.display = 'block';
-        setTimeout(() => {
-            notification.style.display = 'none';
-        }, 3000);
-    }
-</script>
-
 @code {
-    private Book newBook = new Book();
+    private BookDto newBook = new BookDto();
+    private string notificationMessage = string.Empty;
+    private decimal? discountPercentage;
+    private List<AuthorDto> authors;
+    private List<GenreDto> genres;
+    private List<PublisherDto> publishers;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDropdownData();
+    }
+
+    private async Task LoadDropdownData()
+    {
+        try
+        {
+            var options = new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    Converters = { new JsonStringEnumConverter() }
+                };
+            authors = await HttpClient.GetFromJsonAsync<List<AuthorDto>>("api/authors", options) ?? new List<AuthorDto>();
+            genres = await HttpClient.GetFromJsonAsync<List<GenreDto>>("api/genres", options) ?? new List<GenreDto>();
+            publishers = await HttpClient.GetFromJsonAsync<List<PublisherDto>>("api/publishers", options) ?? new List<PublisherDto>();
+        }
+        catch (Exception ex)
+        {
+            notificationMessage = $"Failed to load dropdown data: {ex.Message}";
+        }
+    }
 
     private async Task HandleValidSubmit()
     {
-        // Generate a new ID (simple increment for demo purposes)
-        newBook.Id = SharedBookData.Books.Any() ? SharedBookData.Books.Max(b => b.Id) + 1 : 1;
+        try
+        {
+            // Convert discount percentage to decimal (e.g., 10% -> 0.10)
+            newBook.DiscountPercentage = discountPercentage.HasValue ? discountPercentage.Value / 100 : null;
 
-        // Add the new book to the shared list
-        SharedBookData.Books.Add(newBook);
-
-        await JSRuntime.InvokeVoidAsync("showNotification", $"{newBook.Title} added successfully!");
-
-        // Reset the form
-        newBook = new Book();
-
-        // Navigate back to the books list
-        NavigationManager.NavigateTo("/admin/books");
+            await BookService.AddBookAsync(newBook);
+            notificationMessage = $"{newBook.Title} added successfully!";
+            newBook = new BookDto();
+            discountPercentage = null;
+            NavigationManager.NavigateTo("/admin/books");
+        }
+        catch (Exception ex)
+        {
+            notificationMessage = $"Failed to add book: {ex.Message}";
+        }
     }
 
     private void Cancel()
     {
-        // Reset the form and navigate back
-        newBook = new Book();
+        newBook = new BookDto();
+        discountPercentage = null;
         NavigationManager.NavigateTo("/admin/books");
     }
 
-
-// Define the Book class as public
-public class Book
-{
-    public int Id { get; set; }
-    public string Title { get; set; } = string.Empty;
-    public string Author { get; set; } = string.Empty;
-    public decimal Price { get; set; }
-    public string ImageUrl { get; set; } = string.Empty;
-    public int Stock { get; set; }
-    public int Discount { get; set; }
-}
-
-// Static class to share book data (for demo purposes)
-public static class SharedBookData
-{
-    public static List<Book> Books { get; set; } = new List<Book>
+    // Placeholder DTOs for dropdowns (replace with actual models)
+    public class AuthorDto
     {
-        new Book { Id = 1, Title = "The Picture of Dorian Gray", Author = "Oscar Wilde", Price = 750, Stock = 100, Discount = 0, ImageUrl = "images/book1.jpg" },
-        new Book { Id = 2, Title = "Emma", Author = "Jane Austen", Price = 620, Stock = 100, Discount = 10, ImageUrl = "images/emma.jpg" },
-        new Book { Id = 3, Title = "Ivanhoe", Author = "Walter Scott", Price = 680, Stock = 100, Discount = 0, ImageUrl = "images/scott.jpg" },
-        new Book { Id = 4, Title = "Death of a Salesman", Author = "Arthur Miller", Price = 700, Stock = 100, Discount = 5, ImageUrl = "images/deathofsales.jpg" }
-    };
-}
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+    }
+
+    public class GenreDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+    }
+
+    public class PublisherDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+    }
 }

@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace KitabhChautari.Maui.Models
+namespace KitabhChautari.Enum
 {
     public enum Category
     {

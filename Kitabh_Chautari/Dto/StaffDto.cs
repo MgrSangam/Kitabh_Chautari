@@ -1,4 +1,4 @@
-﻿namespace KitabhChautari.Maui.Models
+﻿namespace KitabhChautari.Models
 {
     using System.ComponentModel.DataAnnotations;
 

@@ -1,55 +1,91 @@
 ﻿@page "/admin/books"
+@using KitabhChautari.Models
+@using KitabhChautari.IServices
 @using Kitabh_Chautari.Components.Layout
-@using static Kitabh_Chautari.Components.Pages.AddBook
 @layout AdminLayout
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
+@inject IBookService BookService
 
 <div class="books-container">
     <h1>Books</h1>
     <button class="add-book-btn" @onclick="AddNewBook">Add Book</button>
-    <table class="books-table">
-        <thead>
-            <tr>
-                <th>Image</th>
-                <th>Title</th>
-                <th>Author</th>
-                <th>Price (NRP)</th>
-                <th>Stock</th>
-                <th>Discount</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var book in SharedBookData.Books)
-            {
-                <tr>
-                    <td>
-                        <img src="@book.ImageUrl" alt="@book.Title" class="book-image" />
-                    </td>
-                    <td>@book.Title</td>
-                    <td>@book.Author</td>
-                    <td>@book.Price.ToString("N0")</td>
-                    <td>@book.Stock</td>
-                    <td>
-                        @if (book.Discount > 0)
-                        {
-                            <span>@book.Discount%</span>
-                        }
-                        else
-                        {
-                            <button @onclick="() => NavigateToAddDiscount(book.Id)">Add Discount</button>
-                        }
-                    </td>
-                    <td>
-                        <button @onclick="() => EditBook(book.Id)">Edit</button>
-                        <button @onclick="() => DeleteBook(book.Id)">Delete</button>
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
+    @if (books == null)
+    {
+        <p>Loading books...</p>
+    }
+    else if (!books.Any())
+    {
+        <p>No books found.</p>
+    }
+    else
+    {
+        <div class="table-wrapper">
+            <table class="books-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Image</th>
+                        <th scope="col">Title</th>
+                        <th scope="col">Author</th>
+                        <th scope="col">Price (NRP)</th>
+                        <th scope="col">Stock</th>
+                        <th scope="col">Discount</th>
+                        <th scope="col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var book in books)
+                    {
+                        <tr>
+                            <td>
+                                <img src="@GetImageUrl(book)"
+                                     alt="Cover for @book.Title"
+                                     class="book-image"
+                                     @onerror="@(() => HandleImageError(book))" />
+                            </td>
+                            <td>@book.Title</td>
+                            <td>@book.AuthorName</td>
+                            <td>@book.Price.ToString("N0")</td>
+                            <td>@book.StockCount</td>
+                            <td>
+                                @if (book.DiscountPercentage.HasValue && book.DiscountPercentage > 0)
+                                {
+                                    <span class="discount-label">@(book.DiscountPercentage.Value * 100)%</span>
+                                }
+                                else
+                                {
+                                    <button class="action-btn discount-btn"
+                                            aria-label="Add discount for @book.Title"
+                                            @onclick="() => NavigateToAddDiscount(book.BookId)">
+                                        Add Discount
+                                    </button>
+                                }
+                            </td>
+                            <td>
+                                <button class="action-btn edit-btn"
+                                        aria-label="Edit @book.Title"
+                                        @onclick="() => EditBook(book.BookId)">
+                                    Edit
+                                </button>
+                                <button class="action-btn delete-btn"
+                                        aria-label="Delete @book.Title"
+                                        @onclick="() => DeleteBook(book.BookId)">
+                                    Delete
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
 </div>
+
+<!-- Notification -->
+@if (!string.IsNullOrEmpty(notificationMessage))
+{
+    <div class="notification" style="display: block;">@notificationMessage</div>
+}
 
 <style>
     .books-container {
@@ -57,7 +93,13 @@
         max-width: 1200px;
         margin: 0 auto;
         padding: 20px;
-        margin-top: 20px; /* Adjusted to avoid overlapping with navbar */
+        margin-top: 20px;
+    }
+
+    h1 {
+        font-size: 2rem;
+        color: #333;
+        margin-bottom: 20px;
     }
 
     .add-book-btn {
@@ -67,6 +109,8 @@
         border: none;
         border-radius: 4px;
         cursor: pointer;
+        font-weight: 500;
+        transition: background-color 0.2s;
         margin-bottom: 20px;
     }
 
@@ -74,73 +118,183 @@
             background-color: #45a049;
         }
 
+    .table-wrapper {
+        overflow-x: auto;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
     .books-table {
         width: 100%;
         border-collapse: collapse;
+        background-color: #fff;
     }
 
-        .books-table th, .books-table td {
-            padding: 12px;
+        .books-table th,
+        .books-table td {
+            padding: 12px 15px;
             text-align: left;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid #e0e0e0;
         }
 
         .books-table th {
             background-color: #f5f5f5;
+            font-weight: 600;
+            color: #333;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            letter-spacing: 0.5px;
         }
 
-        .books-table button {
-            padding: 5px 10px;
-            margin-right: 5px;
-            cursor: pointer;
+        .books-table td {
+            color: #555;
+            font-size: 0.95rem;
         }
 
-            .books-table button:nth-child(1) {
-                background-color: #2196F3;
-                color: white;
-                border: none;
-                border-radius: 4px;
-            }
+        .books-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
 
-            .books-table button:nth-child(2) {
-                background-color: #f44336;
-                color: white;
-                border: none;
-                border-radius: 4px;
-            }
+        .books-table tr:hover {
+            background-color: #f1f1f1;
+        }
 
     .book-image {
         width: 50px;
         height: 75px;
         object-fit: cover;
         border-radius: 4px;
+        vertical-align: middle;
+        display: block;
+    }
+
+    .discount-label {
+        display: inline-block;
+        padding: 4px 8px;
+        background-color: #ff9800;
+        color: white;
+        border-radius: 12px;
+        font-size: 0.85rem;
+    }
+
+    .action-btn {
+        padding: 6px 12px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        color: white;
+        margin-right: 8px;
+        transition: background-color 0.2s;
+    }
+
+    .edit-btn {
+        background-color: #2196F3;
+    }
+
+        .edit-btn:hover {
+            background-color: #1976D2;
+        }
+
+    .delete-btn {
+        background-color: #f44336;
+    }
+
+        .delete-btn:hover {
+            background-color: #d32f2f;
+        }
+
+    .discount-btn {
+        background-color: #ff9800;
+    }
+
+        .discount-btn:hover {
+            background-color: #f57c00;
+        }
+
+    .notification {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background-color: #4CAF50;
+        color: white;
+        padding: 15px;
+        border-radius: 4px;
+        z-index: 1000;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
     }
 </style>
 
 @code {
-    private async void AddNewBook()
+    private List<BookDto> books = new List<BookDto>();
+    private string notificationMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadBooks();
+    }
+
+    private async Task LoadBooks()
     {
         try
         {
-            NavigationManager.NavigateTo("/admin/addbook");
+            var fetchedBooks = await BookService.GetAllBooksAsync();
+            books = fetchedBooks.ToList();
+            // Log CoverImageUrl values for debugging
+            foreach (var book in books)
+            {
+                Console.WriteLine($"Book: {book.Title}, CoverImageUrl: {book.CoverImageUrl ?? "null"}");
+            }
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("console.log", $"Navigation error: {ex.Message}");
+            notificationMessage = $"Failed to load books: {ex.Message}";
         }
     }
+
+    private void AddNewBook()
+    {
+        NavigationManager.NavigateTo("/admin/addbook");
+    }
+
     private void EditBook(int id)
     {
         NavigationManager.NavigateTo($"/admin/books/edit/{id}");
     }
 
-    private void DeleteBook(int id)
+    private async Task DeleteBook(int id)
     {
-        SharedBookData.Books.RemoveAll(b => b.Id == id);
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to delete this book?");
+        if (!confirmed) return;
+
+        try
+        {
+            await BookService.DeleteBookAsync(id);
+            notificationMessage = "Book deleted successfully!";
+            await LoadBooks();
+        }
+        catch (Exception ex)
+        {
+            notificationMessage = $"Failed to delete book: {ex.Message}";
+        }
     }
 
     private void NavigateToAddDiscount(int bookId)
     {
         NavigationManager.NavigateTo($"/admin/books/adddiscount/{bookId}");
+    }
+
+    private string GetImageUrl(BookDto book)
+    {
+        return string.IsNullOrEmpty(book.CoverImageUrl)
+            ? "https://via.placeholder.com/50x75?text=No+Image"
+            : book.CoverImageUrl;
+    }
+
+    private async Task HandleImageError(BookDto book)
+    {
+        book.CoverImageUrl = "https://via.placeholder.com/50x75?text=No+Image";
+        await InvokeAsync(StateHasChanged);
+        Console.WriteLine($"Image failed to load for book: {book.Title}, set to fallback");
     }
 }

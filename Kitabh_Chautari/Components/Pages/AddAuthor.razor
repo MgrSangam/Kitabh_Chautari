@@ -1,21 +1,25 @@
 ﻿@page "/admin/addauthor"
+@using KitabhChautari.Models
+@using KitabhChautari.Services
+@using KitabhChautari.IServices
 @using System.ComponentModel.DataAnnotations
 @using Kitabh_Chautari.Components.Layout
 @layout AdminLayout
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
+@inject IAuthorService AuthorService
 
-<div class="mainContainer">
+<div class="main-container">
     <h1>Add New Author</h1>
     <div class="add-author-container">
-        <EditForm Model="@author" OnValidSubmit="@HandleValidSubmit">
+        <EditForm Model="@author" FormName="AddAuthorForm" OnValidSubmit="@HandleValidSubmit">
             <DataAnnotationsValidator />
             <ValidationSummary />
 
             <div class="form-group">
                 <label for="name">Author Name:</label>
-                <InputText id="name" @bind-Value="author.Name" class="form-input" />
-                <ValidationMessage For="@(() => author.Name)" />
+                <InputText id="name" @bind-Value="author.Author_Name" class="form-input" />
+                <ValidationMessage For="@(() => author.Author_Name)" />
             </div>
 
             <div class="action-buttons">
@@ -24,52 +28,102 @@
             </div>
         </EditForm>
     </div>
+
+    <!-- Table of existing authors -->
+    <div class="author-list">
+        <h2>Existing Authors</h2>
+        @if (existingAuthors == null)
+        {
+            <p>Loading authors...</p>
+        }
+        else if (!existingAuthors.Any())
+        {
+            <p>No authors found.</p>
+        }
+        else
+        {
+            <div class="table-wrapper">
+                <table class="authors-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Author Name</th>
+                            <th scope="col">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var a in existingAuthors)
+                        {
+                            <tr>
+                                <td>@a.Author_Name</td>
+                                <td>
+                                    <button class="action-btn delete-btn"
+                                            aria-label="Delete @a.Author_Name"
+                                            @onclick="() => DeleteAuthor(a.Author_id)">
+                                        Delete
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
 </div>
 
 <!-- Notification -->
-<div class="notification" id="notification" style="display: none;"></div>
+@if (!string.IsNullOrEmpty(notificationMessage))
+{
+    <div class="notification" style="display: block;">@notificationMessage</div>
+}
 
 <style>
-    .mainContainer {
+    .main-container {
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         max-width: 1200px;
         margin: 0 auto;
         padding: 20px;
-        margin-top: 20px; /* Adjusted to avoid overlapping with navbar */
+        margin-top: 20px;
     }
 
     h1 {
         font-size: 2rem;
         color: #333;
-        margin-bottom: 30px;
+        margin-bottom: 20px;
+    }
+
+    h2 {
+        font-size: 1.5rem;
+        color: #333;
+        margin-bottom: 15px;
     }
 
     .add-author-container {
-        max-width: 600px;
-        margin: 0 auto;
-        padding: 20px;
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
         background-color: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        margin-bottom: 30px;
     }
 
     .form-group {
-        margin-bottom: 20px;
+        margin-bottom: 15px;
     }
 
         .form-group label {
             display: block;
-            font-size: 1rem;
-            color: #555;
+            font-weight: 500;
+            color: #333;
             margin-bottom: 5px;
         }
 
     .form-input {
         width: 100%;
-        padding: 8px;
-        border: 1px solid #ddd;
+        padding: 8px 12px;
+        border: 1px solid #ccc;
         border-radius: 4px;
-        font-size: 1rem;
+        font-size: 0.95rem;
+        color: #555;
     }
 
         .form-input:focus {
@@ -80,22 +134,18 @@
 
     .action-buttons {
         display: flex;
-        gap: 15px;
-        margin-top: 20px;
+        gap: 10px;
     }
 
-    .submit-btn, .cancel-btn {
+    .submit-btn {
         padding: 10px 20px;
+        background-color: #4CAF50;
+        color: white;
         border: none;
         border-radius: 4px;
         cursor: pointer;
         font-weight: 500;
-        font-size: 1rem;
-        color: white;
-    }
-
-    .submit-btn {
-        background-color: #4CAF50;
+        transition: background-color 0.2s;
     }
 
         .submit-btn:hover {
@@ -103,11 +153,81 @@
         }
 
     .cancel-btn {
-        background-color: #666;
+        padding: 10px 20px;
+        background-color: #f44336;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: background-color 0.2s;
     }
 
         .cancel-btn:hover {
-            background-color: #555;
+            background-color: #d32f2f;
+        }
+
+    .author-list {
+        margin-top: 20px;
+    }
+
+    .table-wrapper {
+        overflow-x: auto;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .authors-table {
+        width: 100%;
+        border-collapse: collapse;
+        background-color: #fff;
+    }
+
+        .authors-table th,
+        .authors-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .authors-table th {
+            background-color: #f5f5f5;
+            font-weight: 600;
+            color: #333;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            letter-spacing: 0.5px;
+        }
+
+        .authors-table td {
+            color: #555;
+            font-size: 0.95rem;
+        }
+
+        .authors-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .authors-table tr:hover {
+            background-color: #f1f1f1;
+        }
+
+    .action-btn {
+        padding: 6px 12px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        color: white;
+        transition: background-color 0.2s;
+    }
+
+    .delete-btn {
+        background-color: #f44336;
+    }
+
+        .delete-btn:hover {
+            background-color: #d32f2f;
         }
 
     .notification {
@@ -119,75 +239,64 @@
         padding: 15px;
         border-radius: 4px;
         z-index: 1000;
-        display: none;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
     }
 </style>
 
-<script>
-    function showNotification(message) {
-        const notification = document.getElementById('notification');
-        notification.textContent = message;
-        notification.style.display = 'block';
-        setTimeout(() => {
-            notification.style.display = 'none';
-        }, 3000);
-    }
-</script>
-
 @code {
-    private Author author = new Author { BookAuthors = new List<BookAuthor>() };
+    private AuthorDto author = new AuthorDto();
+    private List<AuthorDto> existingAuthors = new List<AuthorDto>();
+    private string notificationMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAuthors();
+    }
+
+    private async Task LoadAuthors()
+    {
+        try
+        {
+            var authors = await AuthorService.GetAllAuthorsAsync();
+            existingAuthors = authors.ToList();
+        }
+        catch (Exception ex)
+        {
+            notificationMessage = "Failed to load authors: " + ex.Message;
+        }
+    }
 
     private async Task HandleValidSubmit()
     {
-        // Generate a new ID (simple increment for demo purposes)
-        author.AuthorId = SharedAuthorData.Authors.Any() ? SharedAuthorData.Authors.Max(a => a.AuthorId) + 1 : 1;
+        try
+        {
+            await AuthorService.AddAuthorAsync(author);
+            notificationMessage = $"{author.Author_Name} added successfully!";
+            author = new AuthorDto();
+            await LoadAuthors();
+        }
+        catch (Exception ex)
+        {
+            notificationMessage = $"Failed to add author: {ex.Message}";
+        }
+    }
 
-        // Add the new author to the shared list
-        SharedAuthorData.Authors.Add(author);
-
-        await JSRuntime.InvokeVoidAsync("showNotification", $"{author.Name} added successfully!");
-
-        // Reset the form
-        author = new Author { BookAuthors = new List<BookAuthor>() };
-
-        // Navigate back to the authors list
-        NavigationManager.NavigateTo("/admin/authors");
+    private async Task DeleteAuthor(int authorId)
+    {
+        try
+        {
+            await AuthorService.DeleteAuthorAsync(authorId);
+            notificationMessage = "Author deleted successfully!";
+            await LoadAuthors();
+        }
+        catch (Exception ex)
+        {
+            notificationMessage = $"Failed to delete author: {ex.Message}";
+        }
     }
 
     private void Cancel()
     {
-        // Reset the form and navigate back
-        author = new Author { BookAuthors = new List<BookAuthor>() };
         NavigationManager.NavigateTo("/admin/authors");
-    }
-
-    public class Author
-    {
-        public int AuthorId { get; set; }
-
-        [Required(ErrorMessage = "Author name is required")]
-        [StringLength(100, ErrorMessage = "Name cannot exceed 100 characters")]
-        public string Name { get; set; } = string.Empty;
-
-        public ICollection<BookAuthor> BookAuthors { get; set; }
-    }
-
-    // Placeholder for BookAuthor class
-    public class BookAuthor
-    {
-        public int BookId { get; set; }
-        public int AuthorId { get; set; }
-    }
-
-    // Static class to share author data (for demo purposes)
-    public static class SharedAuthorData
-    {
-        public static List<Author> Authors { get; set; } = new List<Author>
-        {
-            new Author { AuthorId = 1, Name = "Oscar Wilde", BookAuthors = new List<BookAuthor>() },
-            new Author { AuthorId = 2, Name = "Jane Austen", BookAuthors = new List<BookAuthor>() },
-            new Author { AuthorId = 3, Name = "Walter Scott", BookAuthors = new List<BookAuthor>() },
-            new Author { AuthorId = 4, Name = "Arthur Miller", BookAuthors = new List<BookAuthor>() }
-        };
     }
 }

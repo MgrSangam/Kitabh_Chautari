@@ -1,19 +1,24 @@
 using Kitabh_Chautari.Components;
+using Kitabh_Chautari.IServices;
+using Kitabh_Chautari.Services;
+using KitabhChautari.IServices;
+using KitabhChautari.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
-builder.Services.AddSingleton<ApiHandlerService>();
-builder.Services.AddHttpClient<ApiHandlerService>(client =>
-{
-    client.BaseAddress = new Uri("https://localhost:7025");
-});
 
+builder.Services.AddScoped(sp => new HttpClient
+{
+    BaseAddress = new Uri(builder.Configuration["BackendApiUrl"] ?? "https://localhost:7171") // Updated to match Swagger
+});
+builder.Services.AddScoped<IGenreService, GenreService>();
+builder.Services.AddScoped<IPublisherService, PublisherService>();
+builder.Services.AddScoped<IAuthorService, AuthorService>();
+builder.Services.AddScoped<IBookService, BookService>();
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
