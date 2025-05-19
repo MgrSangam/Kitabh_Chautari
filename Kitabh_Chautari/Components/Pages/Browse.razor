@@ -307,9 +307,9 @@
     {
         try
         {
-            await LoadBooks();
             await LoadGenres();
             await LoadAuthors();
+            await LoadBooks();
             ApplyFilters();
         }
         catch (Exception ex)
@@ -324,7 +324,17 @@
 
     private async Task LoadBooks()
     {
-        allBooks = (await BookService.GetAllBooksAsync()).ToList();
+        var queryParameters = new List<string>();
+        if (!string.IsNullOrEmpty(currentCategoryFilter))
+            queryParameters.Add($"category={Uri.EscapeDataString(currentCategoryFilter)}");
+        if (!string.IsNullOrEmpty(currentGenreFilter) && int.TryParse(currentGenreFilter, out var genreId))
+            queryParameters.Add($"genreId={genreId}");
+        if (!string.IsNullOrEmpty(currentAuthorFilter) && int.TryParse(currentAuthorFilter, out var authorId))
+            queryParameters.Add($"authorId={authorId}");
+
+        var queryString = queryParameters.Any() ? $"?{string.Join("&", queryParameters)}" : "";
+        var response = await HttpClient.GetFromJsonAsync<List<BookDto>>($"api/books{queryString}");
+        allBooks = response ?? new List<BookDto>();
     }
 
     private async Task LoadGenres()
@@ -343,21 +353,24 @@
     {
         currentCategoryFilter = category;
         currentPage = 1;
-        ApplyFilters();
+        isLoading = true;
+        _ = LoadBooks().ContinueWith(t => ApplyFilters());
     }
 
     private void FilterByGenre(string genreId)
     {
         currentGenreFilter = genreId;
         currentPage = 1;
-        ApplyFilters();
+        isLoading = true;
+        _ = LoadBooks().ContinueWith(t => ApplyFilters());
     }
 
     private void FilterByAuthor(string authorId)
     {
         currentAuthorFilter = authorId;
         currentPage = 1;
-        ApplyFilters();
+        isLoading = true;
+        _ = LoadBooks().ContinueWith(t => ApplyFilters());
     }
 
     private void FilterByRating(string rating)
@@ -371,28 +384,15 @@
     {
         filteredBooks = allBooks;
 
-        if (!string.IsNullOrEmpty(currentCategoryFilter))
-        {
-            filteredBooks = filteredBooks.Where(b => b.Category?.ToString() == currentCategoryFilter).ToList();
-        }
-
-        if (!string.IsNullOrEmpty(currentGenreFilter) && int.TryParse(currentGenreFilter, out int genreId))
-        {
-            filteredBooks = filteredBooks.Where(b => b.Genre_id == genreId).ToList();
-        }
-
-        if (!string.IsNullOrEmpty(currentAuthorFilter) && int.TryParse(currentAuthorFilter, out int authorId))
-        {
-            filteredBooks = filteredBooks.Where(b => b.Author_id == authorId).ToList();
-        }
-
         if (!string.IsNullOrEmpty(currentRatingFilter) && decimal.TryParse(currentRatingFilter, out decimal minRating))
         {
-            // Note: You'll need to add Rating property to BookDto if you want to filter by rating
+            // Note: Add Rating property to BookDto if you want to filter by rating
             // filteredBooks = filteredBooks.Where(b => b.Rating >= minRating).ToList();
         }
 
         SortBooks(currentSortOption);
+        isLoading = false;
+        StateHasChanged();
     }
 
     private void SortBooks(string sortOption)
@@ -401,20 +401,18 @@
 
         switch (sortOption)
         {
-            case "Latest":
-                filteredBooks = filteredBooks.OrderByDescending(b => b.PublishedDate).ToList();
-                break;
             case "PriceLowToHigh":
                 filteredBooks = filteredBooks.OrderBy(b => b.Price).ToList();
                 break;
             case "PriceHighToLow":
                 filteredBooks = filteredBooks.OrderByDescending(b => b.Price).ToList();
                 break;
-            case "BestSellers":
-            default:
-                // Note: You'll need to add a SalesCount property to BookDto for best sellers
-                // filteredBooks = filteredBooks.OrderByDescending(b => b.SalesCount).ToList();
+            case "Latest":
                 filteredBooks = filteredBooks.OrderByDescending(b => b.PublishedDate).ToList();
+                break;
+            case "BestSellers":
+                // Note: Add SalesCount property to BookDto for best sellers
+                filteredBooks = filteredBooks.OrderByDescending(b => b.PublishedDate).ToList(); // Placeholder
                 break;
         }
 

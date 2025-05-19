@@ -1,10 +1,13 @@
 ﻿@page "/bookdetails/{BookId:int}"
 @inject NavigationManager NavigationManager
-@using KitabhChautari.Models
-@using KitabhChautari.Services
-@using KitabhChautari.IServices
 @inject IJSRuntime JSRuntime
+@using KitabhChautari.Services
+@using KitabhChautari.Models
+@using KitabhChautari.IServices
+@using Kitabh_Chautari.Dto
+@using Kitabh_Chautari.IServices
 @inject IBookService BookService
+@inject IWishlistService WishlistService
 
 <!-- Main Content -->
 <div class="mainContainer">
@@ -74,7 +77,6 @@
         <div class="author-section">
             <h2>Author</h2>
             <p>@(selectedBook.AuthorName ?? "Unknown Author")</p>
-            <!-- Add more author details if available via a separate API call -->
         </div>
     }
 
@@ -166,17 +168,17 @@
         gap: 15px;
     }
 
-    .book-info .book-title {
-        font-size: 2rem;
-        margin: 0;
-        color: #333;
-    }
+        .book-info .book-title {
+            font-size: 2rem;
+            margin: 0;
+            color: #333;
+        }
 
-    .book-info .book-author {
-        font-size: 1.2rem;
-        color: #666;
-        margin: 0;
-    }
+        .book-info .book-author {
+            font-size: 1.2rem;
+            color: #666;
+            margin: 0;
+        }
 
     .quantity-selector {
         display: flex;
@@ -184,10 +186,10 @@
         gap: 10px;
     }
 
-    .quantity-selector label {
-        font-size: 1rem;
-        color: #555;
-    }
+        .quantity-selector label {
+            font-size: 1rem;
+            color: #555;
+        }
 
     .quantity-btn {
         width: 30px;
@@ -202,9 +204,9 @@
         justify-content: center;
     }
 
-    .quantity-btn:hover {
-        background-color: #e0e0e0;
-    }
+        .quantity-btn:hover {
+            background-color: #e0e0e0;
+        }
 
     .quantity-selector span {
         min-width: 20px;
@@ -249,25 +251,25 @@
         background-color: #4CAF50;
     }
 
-    .add-to-cart:hover {
-        background-color: #45a049;
-    }
+        .add-to-cart:hover {
+            background-color: #45a049;
+        }
 
     .buy-now {
         background-color: #ff6200;
     }
 
-    .buy-now:hover {
-        background-color: #e55b00;
-    }
+        .buy-now:hover {
+            background-color: #e55b00;
+        }
 
     .add-to-wishlist {
         background-color: #0066cc;
     }
 
-    .add-to-wishlist:hover {
-        background-color: #005bb5;
-    }
+        .add-to-wishlist:hover {
+            background-color: #005bb5;
+        }
 
     /* Description and Specifications Sections */
     .desc-spec-container {
@@ -332,35 +334,35 @@
         color: inherit;
     }
 
-    .productCard:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-    }
+        .productCard:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
 
-    .productCard img {
-        width: 100%;
-        height: 300px;
-        object-fit: cover;
-        border-radius: 4px;
-    }
+        .productCard img {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
 
-    .productCard .book-title {
-        font-size: 1.1rem;
-        margin: 10px 0 5px 0;
-    }
+        .productCard .book-title {
+            font-size: 1.1rem;
+            margin: 10px 0 5px 0;
+        }
 
-    .productCard .book-author {
-        color: #666;
-        font-size: 0.9rem;
-        margin: 0 0 10px 0;
-    }
+        .productCard .book-author {
+            color: #666;
+            font-size: 0.9rem;
+            margin: 0 0 10px 0;
+        }
 
-    .productCard .book-price {
-        font-weight: bold;
-        color: #333;
-        display: block;
-        margin-bottom: 15px;
-    }
+        .productCard .book-price {
+            font-weight: bold;
+            color: #333;
+            display: block;
+            margin-bottom: 15px;
+        }
 
     /* Footer */
     .footer-grid {
@@ -390,9 +392,9 @@
         cursor: pointer;
     }
 
-    .bi:hover {
-        color: #0066cc;
-    }
+        .bi:hover {
+            color: #0066cc;
+        }
 
     .notification {
         position: fixed;
@@ -426,6 +428,7 @@
     private IEnumerable<BookDto>? relatedBooks;
     private bool selectedBookError = false;
     private int quantity = 1;
+    private int memberId = 1; // Hardcoded for demo; retrieve from authentication in a real app
 
     protected override async Task OnInitializedAsync()
     {
@@ -443,7 +446,7 @@
             // Fetch related books (e.g., same genre or category)
             var allBooks = await BookService.GetAllBooksAsync();
             relatedBooks = allBooks
-                .Where(b => b.BookId != BookId && // Exclude the current book
+                .Where(b => b.BookId != BookId &&
                             (b.Genre_id == selectedBook.Genre_id || b.Category == selectedBook.Category))
                 .Take(4); // Limit to 4 related books
         }
@@ -487,7 +490,19 @@
     private async Task AddToWishlist()
     {
         if (selectedBook == null) return;
-        await JSRuntime.InvokeVoidAsync("showNotification", $"{selectedBook.Title} added to wishlist!");
+        try
+        {
+            var wishlistItem = new WishlistItemDto
+                {
+                    BookId = selectedBook.BookId
+                };
+            await WishlistService.AddToWishlistAsync(memberId, wishlistItem);
+            await JSRuntime.InvokeVoidAsync("showNotification", $"{selectedBook.Title} added to wishlist!");
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("showNotification", $"Error adding to wishlist: {ex.Message}");
+        }
     }
 
     private async Task AddToCartRelated(string bookTitle)

@@ -17,6 +17,7 @@ builder.Services.AddScoped<IGenreService, GenreService>();
 builder.Services.AddScoped<IPublisherService, PublisherService>();
 builder.Services.AddScoped<IAuthorService, AuthorService>();
 builder.Services.AddScoped<IBookService, BookService>();
+builder.Services.AddScoped<IWishlistService, WishlistService>();
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())

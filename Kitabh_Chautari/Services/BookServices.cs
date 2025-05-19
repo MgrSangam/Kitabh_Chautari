@@ -1,5 +1,8 @@
 ﻿using KitabhChautari.IServices;
 using KitabhChautari.Models;
+using System.Collections.Generic;
+using System.Net.Http.Json;
+using System.Threading.Tasks;
 
 namespace KitabhChautari.Services
 {
@@ -14,7 +17,8 @@ namespace KitabhChautari.Services
 
         public async Task<IEnumerable<BookDto>> GetAllBooksAsync()
         {
-            return await _httpClient.GetFromJsonAsync<IEnumerable<BookDto>>("api/books")
+            var queryString = "";
+            return await _httpClient.GetFromJsonAsync<IEnumerable<BookDto>>($"api/books{queryString}")
                    ?? new List<BookDto>();
         }
 

@@ -1,6 +1,11 @@
 ﻿@page "/wishlist"
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
+@using KitabhChautari.IServices
+@using Kitabh_Chautari.IServices
+@using Kitabh_Chautari.Services
+@inject IWishlistService WishlistService
+@inject IBookService BookService
 
 <h3>Wishlist</h3>
 
@@ -8,19 +13,23 @@
 <div class="mainContainer">
     <!-- Wishlist Layout -->
     <div class="wishlistContainer">
-        @if (wishlistBooks.Any())
+        @if (wishlistBooks == null)
+        {
+            <p>Loading wishlist...</p>
+        }
+        else if (wishlistBooks.Any())
         {
             <div class="products-grid">
                 @foreach (var book in wishlistBooks)
                 {
                     <div class="productCard">
-                        <NavLink href="@($"/bookdetails/{book.Id}")">
-                            <img src="@book.ImageUrl" alt="@book.Title" />
+                        <NavLink href="@($"/bookdetails/{book.BookId}")">
+                            <img src="@book.CoverImageUrl" alt="@book.Title" />
                             <h3 class="book-title">@book.Title</h3>
-                            <p class="book-author">@book.Author</p>
+                            <p class="book-author">@(book.AuthorName ?? "Unknown Author")</p>
                             <span class="book-price">NRP @book.Price.ToString("N0")</span>
                         </NavLink>
-                        <button class="removeButton" @onclick="() => RemoveFromWishlist(book.Id)">Remove</button>
+                        <button class="removeButton" @onclick="() => RemoveFromWishlist(book.WishlistItemId)">Remove</button>
                     </div>
                 }
             </div>
@@ -194,39 +203,69 @@
 </script>
 
 @code {
-    private List<Book> wishlistBooks;
+    private List<Book> wishlistBooks = new List<Book>();
+    private int memberId = 1; // Hardcoded for demo; retrieve from authentication in a real app
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        // Placeholder wishlist data (subset of books from browse page)
-        wishlistBooks = new List<Book>
+        try
         {
-            new Book { Id = 1, Title = "The Picture of Dorian Gray", Author = "Oscar Wilde", Price = 750, ImageUrl = "images/book1.jpg", Genre = "Fiction", Rating = 4.5m, Publisher = "Penguin" },
-            new Book { Id = 2, Title = "Emma", Author = "Jane Austen", Price = 620, ImageUrl = "images/emma.jpg", Genre = "Romance", Rating = 4.0m, Publisher = "Oxford" },
-            new Book { Id = 3, Title = "Ivanhoe", Author = "Walter Scott", Price = 680, ImageUrl = "images/scott.jpg", Genre = "Historical", Rating = 3.8m, Publisher = "Penguin" }
-        };
+            // Fetch wishlist from server
+            var wishlist = await WishlistService.GetWishlistAsync(memberId);
+            if (wishlist != null && wishlist.WishlistItems.Any())
+            {
+                // Fetch book details for each wishlist item
+                wishlistBooks = new List<Book>();
+                foreach (var item in wishlist.WishlistItems)
+                {
+                    var bookDto = await BookService.GetBookByIdAsync(item.BookId);
+                    if (bookDto != null)
+                    {
+                        wishlistBooks.Add(new Book
+                            {
+                                WishlistItemId = item.WishlistItemId,
+                                BookId = bookDto.BookId,
+                                Title = bookDto.Title,
+                                AuthorName = bookDto.AuthorName,
+                                Price = bookDto.Price,
+                                CoverImageUrl = bookDto.CoverImageUrl
+                            });
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("showNotification", $"Error loading wishlist: {ex.Message}");
+        }
     }
 
-    private async Task RemoveFromWishlist(int bookId)
+    private async Task RemoveFromWishlist(int wishlistItemId)
     {
-        var book = wishlistBooks.FirstOrDefault(b => b.Id == bookId);
-        if (book != null)
+        try
         {
-            wishlistBooks.Remove(book);
-            await JSRuntime.InvokeVoidAsync("showNotification", $"{book.Title} removed from wishlist!");
-            StateHasChanged();
+            await WishlistService.RemoveFromWishlistAsync(memberId, wishlistItemId);
+            var book = wishlistBooks.FirstOrDefault(b => b.WishlistItemId == wishlistItemId);
+            if (book != null)
+            {
+                wishlistBooks.Remove(book);
+                await JSRuntime.InvokeVoidAsync("showNotification", $"{book.Title} removed from wishlist!");
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("showNotification", $"Error removing from wishlist: {ex.Message}");
         }
     }
 
     private class Book
     {
-        public int Id { get; set; }
+        public int WishlistItemId { get; set; }
+        public int BookId { get; set; }
         public string Title { get; set; }
-        public string Author { get; set; }
+        public string AuthorName { get; set; }
         public decimal Price { get; set; }
-        public string ImageUrl { get; set; }
-        public string Genre { get; set; }
-        public decimal Rating { get; set; }
-        public string Publisher { get; set; }
+        public string CoverImageUrl { get; set; }
     }
 }
